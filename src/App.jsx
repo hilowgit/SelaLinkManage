@@ -1,4 +1,4 @@
-// Version: FINAL-REBUILD - 24/06/2025
+// Version: FINAL-REBUILD-V2 - 24/06/2025
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
@@ -6,9 +6,10 @@ import { getFirestore, collection, doc, addDoc, getDocs, setDoc, onSnapshot, que
 import { Search, User, Users, Calendar, BookOpen, Edit, Trash2, PlusCircle, X, Clock, Building, Tag, Users as TraineesIcon, ClipboardList, List, DollarSign, Award, Percent, Star, XCircle, CheckCircle, BarChart2, Briefcase, AlertTriangle } from 'lucide-react';
 
 // --- تهيئة Firebase ---
-console.log("RUNNING CODE VERSION: FINAL-REBUILD"); // للتأكد من تشغيل النسخة الصحيحة
+console.log("RUNNING CODE VERSION: FINAL-REBUILD-V2"); // للتأكد من تشغيل النسخة الصحيحة
 
-const firebaseConfig = {
+// Using a different variable name to avoid potential build-time replacement
+const silaFirebaseConfiguration = {
     apiKey: "AIzaSyDNpZkYVtwQIhT4oI1sP9z6fM1i3Jc8wXk",
     authDomain: "selalinkm.firebaseapp.com",
     projectId: "selalinkm",
@@ -18,9 +19,13 @@ const firebaseConfig = {
     measurementId: "G-ZHTF5H94H3"
 };
 
+// Log the actual config being used to the console for debugging
+console.log("Using Firebase Config:", JSON.stringify(silaFirebaseConfiguration));
+
+
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'sila-center-app-v3-local';
 
-const app = initializeApp(firebaseConfig);
+const app = initializeApp(silaFirebaseConfiguration); // Use the new variable name
 const auth = getAuth(app);
 const db = getFirestore(app);
 
