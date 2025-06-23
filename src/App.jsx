@@ -5,16 +5,16 @@ import { getFirestore, collection, doc, addDoc, getDocs, setDoc, onSnapshot, que
 import { Search, User, Users, Calendar, BookOpen, Edit, Trash2, PlusCircle, X, Clock, Building, Tag, Users as TraineesIcon, ClipboardList, List, DollarSign, Award, Percent, Star, XCircle, CheckCircle, BarChart2, Briefcase, AlertTriangle } from 'lucide-react';
 
 // --- تهيئة Firebase ---
-const firebaseConfig = typeof __firebase_config !== 'undefined' && __firebase_config
-    ? JSON.parse(__firebase_config)
-    : {
-        apiKey: "YOUR_LOCAL_API_KEY",
-        authDomain: "YOUR_LOCAL_AUTH_DOMAIN",
-        projectId: "YOUR_LOCAL_PROJECT_ID",
-        storageBucket: "YOUR_LOCAL_STORAGE_BUCKET",
-        messagingSenderId: "YOUR_LOCAL_MESSAGING_SENDER_ID",
-        appId: "YOUR_LOCAL_APP_ID"
-    };
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCCJk3zE35aV5viUS2ylimXPW3afapmAy4",
+  authDomain: "selalinkm.firebaseapp.com",
+  projectId: "selalinkm",
+  storageBucket: "selalinkm.firebasestorage.app",
+  messagingSenderId: "630104753476",
+  appId: "1:630104753476:web:c2a5aff861f8209999c311",
+  measurementId: "G-ZHT5B0G903"
+};
 
 if (firebaseConfig.apiKey === "YOUR_LOCAL_API_KEY") {
     console.warn("Firebase config is using placeholder values. Please replace them with your actual Firebase project configuration for local development.");
