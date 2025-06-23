@@ -5,20 +5,23 @@ import { getFirestore, collection, doc, addDoc, getDocs, setDoc, onSnapshot, que
 import { Search, User, Users, Calendar, BookOpen, Edit, Trash2, PlusCircle, X, Clock, Building, Tag, Users as TraineesIcon, ClipboardList, List, DollarSign, Award, Percent, Star, XCircle, CheckCircle, BarChart2, Briefcase, AlertTriangle } from 'lucide-react';
 
 // --- تهيئة Firebase ---
-// ملاحظة: تم تعديل هذا الجزء ليعمل بشكل صحيح في بيئة التطوير وبيئة الإنتاج (Canvas)
-const firebaseConfig = typeof __firebase_config !== 'undefined'
+// ملاحظة: تم تعديل هذا الجزء ليعمل بشكل صحيح في بيئة الإنتاج (Canvas)
+// عند التشغيل المحلي، يجب عليك استبدال هذا الكائن ببيانات Firebase الخاصة بك
+const firebaseConfig = typeof __firebase_config !== 'undefined' && __firebase_config
     ? JSON.parse(__firebase_config)
     : {
-        // ضع بيانات Firebase الخاصة بك هنا كبديل عند التشغيل المحلي
-        apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-        authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-        projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-        storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-        messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-        appId: import.meta.env.VITE_FIREBASE_APP_ID
+        // !! هام جداً للتشغيل المحلي !!
+        // استبدل هذه القيم بالقيم الصحيحة لمشروع Firebase الخاص بك
+        // يمكنك الحصول عليها من إعدادات مشروعك في Firebase Console
+        apiKey: "YOUR_LOCAL_API_KEY",
+        authDomain: "YOUR_LOCAL_AUTH_DOMAIN",
+        projectId: "YOUR_LOCAL_PROJECT_ID",
+        storageBucket: "YOUR_LOCAL_STORAGE_BUCKET",
+        messagingSenderId: "YOUR_LOCAL_MESSAGING_SENDER_ID",
+        appId: "YOUR_LOCAL_APP_ID"
     };
 
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'sila-center-app-v3';
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'sila-center-app-v3-local';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
