@@ -5,7 +5,7 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 // --- Firebase Configuration ---
 // Using the exact configuration you provided
 const firebaseConfig = {
-    apiKey: "AIzaSyCCLM3ZkT5aV1USly2uPKcKofapmkY4",
+    apiKey: "AIzaSyDpP8k7q1IVwYTaBsfqe0ewONRd1UMUwj8",
     authDomain: "selalinkm.firebaseapp.com",
     projectId: "selalinkm",
     storageBucket: "selalinkm.appspot.com",
