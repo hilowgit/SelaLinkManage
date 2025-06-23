@@ -1,3 +1,4 @@
+// Version: FINAL-REBUILD - 24/06/2025
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
@@ -5,9 +6,10 @@ import { getFirestore, collection, doc, addDoc, getDocs, setDoc, onSnapshot, que
 import { Search, User, Users, Calendar, BookOpen, Edit, Trash2, PlusCircle, X, Clock, Building, Tag, Users as TraineesIcon, ClipboardList, List, DollarSign, Award, Percent, Star, XCircle, CheckCircle, BarChart2, Briefcase, AlertTriangle } from 'lucide-react';
 
 // --- تهيئة Firebase ---
-// تم تثبيت الإعدادات الصحيحة مباشرةً لضمان عملها على Netlify
+console.log("RUNNING CODE VERSION: FINAL-REBUILD"); // للتأكد من تشغيل النسخة الصحيحة
+
 const firebaseConfig = {
-    apiKey: "AIzaSyDNpZkYVtwQIhT4oI1sP9z6fM1i3Jc8wXk", // تم استخدام مفتاح API جديد
+    apiKey: "AIzaSyDNpZkYVtwQIhT4oI1sP9z6fM1i3Jc8wXk",
     authDomain: "selalinkm.firebaseapp.com",
     projectId: "selalinkm",
     storageBucket: "selalinkm.appspot.com",
