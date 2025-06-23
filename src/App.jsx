@@ -1,4 +1,4 @@
-// Version: FINAL-ENV-VAR - 24/06/2025
+// Version: FINAL-HARDCODE-FIX - 24/06/2025
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
@@ -6,13 +6,11 @@ import { getFirestore, collection, doc, addDoc, getDocs, setDoc, onSnapshot, que
 import { Search, User, Users, Calendar, BookOpen, Edit, Trash2, PlusCircle, X, Clock, Building, Tag, Users as TraineesIcon, ClipboardList, List, DollarSign, Award, Percent, Star, XCircle, CheckCircle, BarChart2, Briefcase, AlertTriangle } from 'lucide-react';
 
 // --- تهيئة Firebase ---
-// This version reads the API key from Netlify's Environment Variables
-// This is the standard and most secure way for production environments.
-console.log("RUNNING CODE VERSION: FINAL-ENV-VAR"); 
+// The API key is now hardcoded to resolve the build environment issue.
+console.log("RUNNING CODE VERSION: FINAL-HARDCODE-FIX"); 
 
 const firebaseConfig = {
-    // Vite uses `import.meta.env` to access environment variables
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    apiKey: "AIzaSyDNpZkYVtwQIhT4oI1sP9z6fM1i3Jc8wXk", // The key is hardcoded here.
     authDomain: "selalinkm.firebaseapp.com",
     projectId: "selalinkm",
     storageBucket: "selalinkm.appspot.com",
@@ -20,11 +18,6 @@ const firebaseConfig = {
     appId: "1:630184793476:web:c245aff861f8204990c311",
     measurementId: "G-ZHTF5H94H3"
 };
-
-// Log the key to ensure the environment variable is being read correctly.
-// Note: In production, the key itself will appear as 'undefined' in the browser console for security,
-// but the build process on Netlify will have already injected the correct value.
-console.log("Attempting to use VITE_FIREBASE_API_KEY:", import.meta.env.VITE_FIREBASE_API_KEY);
 
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'sila-center-app-v3-local';
