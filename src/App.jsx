@@ -1,23 +1,29 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
-import { getFirestore, collection, doc, addDoc, getDocs, setDoc, onSnapshot, query, where, deleteDoc } from 'firebase/firestore';
+import { getFirestore, collection, doc, addDoc, getDocs, setDoc, onSnapshot, query, where, deleteDoc, writeBatch } from 'firebase/firestore';
 import { Search, User, Users, Calendar, BookOpen, Edit, Trash2, PlusCircle, X, Clock, Building, Tag, Users as TraineesIcon, ClipboardList, List, DollarSign, Award, Percent, Star, XCircle, CheckCircle, BarChart2, Briefcase, AlertTriangle } from 'lucide-react';
 
 // --- تهيئة Firebase ---
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
-};
-const appId = import.meta.env.VITE_APP_ID || 'sila-center-app-v3';
+// ملاحظة: تم تعديل هذا الجزء ليعمل بشكل صحيح في بيئة التطوير وبيئة الإنتاج (Canvas)
+const firebaseConfig = typeof __firebase_config !== 'undefined'
+    ? JSON.parse(__firebase_config)
+    : {
+        // ضع بيانات Firebase الخاصة بك هنا كبديل عند التشغيل المحلي
+        apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+        authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+        projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+        storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+        messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+        appId: import.meta.env.VITE_FIREBASE_APP_ID
+    };
+
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'sila-center-app-v3';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+
 
 // --- مكونات واجهة المستخدم المساعدة ---
 
@@ -88,10 +94,9 @@ const Button = ({ children, onClick, variant = 'primary', className = '', type =
 };
 
 
-// --- البيانات المبدئية (للتوضيح فقط) ---
+// --- البيانات المبدئية ---
 const initialTrainees = [
     { id: 't1', fullName: 'أحمد محمد علي', phoneNumber: '0912345678', address: 'دمشق - المزة', nationalId: '01020304050', dob: '1998-05-15', motherName: 'فاطمة', education: 'بكالوريوس هندسة معلوماتية', courses: [{ id: 1, courseName: 'التسويق الرقمي', registrationDate: '2023-01-10', price: 200000, discountedPrice: 180000, attended: true }], payments: [{ id: 1, status: 'مدفوع بالكامل', amount: 180000, date: '2023-01-15' }], discounts: ['خصم تسجيل مبكر'], workshops: ['ورشة عمل SEO'], certificates: [{ id: 1, name: 'شهادة التسويق الرقمي', received: true, reason: '' }] },
-    { id: 't2', fullName: 'سارة خالد الحسن', phoneNumber: '0987654321', address: 'حلب - الفرقان', nationalId: '02030405060', dob: '2000-11-22', motherName: 'عائشة', education: 'طالبة جامعية', courses: [{ id: 1, courseName: 'تصميم الجرافيك', registrationDate: '2023-02-20', price: 250000, discountedPrice: 250000, attended: true }], payments: [{ id: 1, status: 'متبقي دفعة', amount: 150000, date: '2023-02-20' }], discounts: [], workshops: [], certificates: [{ id: 1, name: 'شهادة تصميم الجرافيك', received: false, reason: 'لم تكمل المشروع النهائي' }] }
 ];
 
 const initialTrainers = [
@@ -100,7 +105,6 @@ const initialTrainers = [
 
 const initialSchedules = [
     { id: 's1', courseName: 'التسويق الرقمي', hall: 'قاعة 1', category: 'التسويق', startTime: '17:00', endTime: '19:00', startDate: '2025-10-01', endDate: '2025-11-15', days: ['الأحد', 'الثلاثاء'], traineeCount: 15, germanBoardApplicants: [{ name: 'أحمد محمد علي' }], cancellations: [], absences: [], plan: 'الخطة التفصيلية...', materials: 'جهاز عرض، سبورة بيضاء' },
-    { id: 's2', courseName: 'تصميم الجرافيك', hall: 'قاعة 2', category: 'التصميم', startTime: '18:00', endTime: '20:00', startDate: '2025-09-01', endDate: '2025-10-30', days: ['الاثنين', 'الأربعاء'], traineeCount: 12, germanBoardApplicants: [], cancellations: [], absences: [], plan: 'الخطة...', materials: 'أجهزة كمبيوتر' }
 ];
 
 
@@ -116,6 +120,13 @@ export default function App() {
     const [schedules, setSchedules] = useState([]);
 
     const [loading, setLoading] = useState(true);
+    
+    // useRef لتجنب إعادة تعريف المتغيرات مع كل تحديث
+    const initialLoadStatus = useRef({
+        trainees: false,
+        trainers: false,
+        schedules: false,
+    });
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -124,8 +135,11 @@ export default function App() {
             } else {
                  try {
                      const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-                     if(token) await signInWithCustomToken(auth, token);
-                     else await signInAnonymously(auth);
+                     if(token) {
+                        await signInWithCustomToken(auth, token);
+                     } else {
+                        await signInAnonymously(auth);
+                     }
                  } catch (error) { console.error("Error during sign-in:", error); }
             }
             setIsAuthReady(true);
@@ -133,37 +147,67 @@ export default function App() {
         return () => unsubscribe();
     }, []);
 
+    // *** useEffect المصحح لجلب البيانات ***
     useEffect(() => {
         if (!isAuthReady || !userId) return;
 
-        setLoading(true);
         const collections = { trainees: 'trainees', trainers: 'trainers', schedules: 'schedules' };
         const setters = { trainees: setTrainees, trainers: setTrainers, schedules: setSchedules };
         const initialDataMap = { trainees: initialTrainees, trainers: initialTrainers, schedules: initialSchedules };
+        
+        // إعادة تعيين حالة التحميل عند تغيير المستخدم
+        setLoading(true);
+        initialLoadStatus.current = { trainees: false, trainers: false, schedules: false };
+
+
+        const checkAllLoaded = () => {
+            if (Object.values(initialLoadStatus.current).every(status => status === true)) {
+                setLoading(false);
+                console.log("All collections loaded. UI is ready.");
+            }
+        };
 
         const unsubscribers = Object.keys(collections).map(key => {
             const collectionName = collections[key];
-            const q = query(collection(db, `artifacts/${appId}/users/${userId}/${collectionName}`));
+            const collectionPath = `artifacts/${appId}/users/${userId}/${collectionName}`;
+            const q = query(collection(db, collectionPath));
             
             return onSnapshot(q, async (querySnapshot) => {
-                let dataList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                if (querySnapshot.empty) {
+                // التعامل مع حالة عدم وجود بيانات أولية (Seeding)
+                if (querySnapshot.empty && !initialLoadStatus.current[key]) {
+                    console.log(`Collection '${key}' is empty. Seeding initial data...`);
+                    const batch = writeBatch(db);
                     const initialData = initialDataMap[key];
-                    for (const item of initialData) {
+                    initialData.forEach(item => {
                         const { id, ...data } = item;
-                        try {
-                            await setDoc(doc(db, `artifacts/${appId}/users/${userId}/${collectionName}`, id), data);
-                        } catch (e) { console.error("Error setting initial doc:", e); }
-                    }
-                    dataList = initialData;
+                        const docRef = doc(db, collectionPath, id);
+                        batch.set(docRef, data);
+                    });
+                    await batch.commit();
+                    // سيتم استدعاء onSnapshot تلقائياً بعد إضافة البيانات، لذا لا نفعل شيئاً هنا
+                    return;
                 }
+                
+                const dataList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 setters[key](dataList);
-            }, (error) => console.error(`Error fetching ${key}:`, error));
+
+                // التأكد من أننا نوقف التحميل فقط بعد وصول الدفعة الأولى من البيانات
+                if (!initialLoadStatus.current[key]) {
+                    initialLoadStatus.current[key] = true;
+                    checkAllLoaded();
+                }
+            }, (error) => {
+                console.error(`Error fetching ${key}:`, error);
+                // في حالة الخطأ، نعتبر أن المجموعة قد "انتهت" من التحميل لمنع توقف التطبيق
+                initialLoadStatus.current[key] = true;
+                checkAllLoaded();
+            });
         });
 
-        setLoading(false);
-        return () => unsubscribers.forEach(unsub => unsub());
+        return () => {
+            console.log("Cleaning up Firestore listeners.");
+            unsubscribers.forEach(unsub => unsub());
+        };
     }, [isAuthReady, userId]);
 
     const renderContent = () => {
@@ -200,7 +244,7 @@ export default function App() {
                            <span className={`px-3 py-1 text-sm font-bold rounded-full ${userRole === 'admin' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
                                 {userRole === 'admin' ? 'مدير' : 'مشرف'}
                             </span>
-                           {userId && <div className="text-xs text-gray-400">ID: {userId}</div>}
+                            {userId && <div className="text-xs text-gray-400">ID: {userId}</div>}
                         </div>
                     </div>
                 </header>
@@ -341,7 +385,7 @@ const TraineesView = ({ data, userId, userRole }) => {
     const handleDelete = async () => {
         if (itemToDelete) {
              try {
-                await deleteDoc(doc(db, `artifacts/${appId}/users/${userId}/trainees`, itemToDelete));
+                 await deleteDoc(doc(db, `artifacts/${appId}/users/${userId}/trainees`, itemToDelete));
              } catch(error) { console.error("Error deleting trainee:", error); }
             
             setIsConfirmOpen(false);
@@ -702,7 +746,7 @@ const ScheduleView = ({ data, userId, userRole }) => {
     const handleDelete = async () => {
         if (itemToDelete) {
              try {
-                await deleteDoc(doc(db, `artifacts/${appId}/users/${userId}/schedules`, itemToDelete));
+                 await deleteDoc(doc(db, `artifacts/${appId}/users/${userId}/schedules`, itemToDelete));
              } catch(error) { console.error("Error deleting schedule:", error); }
             setIsConfirmOpen(false);
             setItemToDelete(null);
@@ -738,21 +782,21 @@ const ScheduleView = ({ data, userId, userRole }) => {
 
             {selectedDayEvents && (
                 <Modal isOpen={!!selectedDayEvents} onClose={() => setSelectedDayEvents(null)} title={`جدول يوم ${selectedDayEvents.day} ${currentDate.toLocaleString('ar-EG', { month: 'long' })}`}>
-                     <div className="space-y-4">
-                        {selectedDayEvents.events.map(event => (
-                            <div key={event.id} className="p-4 bg-light-blue-50 rounded-lg border border-blue-200">
-                                <h4 className="font-bold text-xl text-blue-800 mb-3">{event.courseName}</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                    <InfoRow label="القاعة" value={event.hall} icon={<Building />} />
-                                    <InfoRow label="القسم" value={event.category} icon={<Tag />} />
+                       <div className="space-y-4">
+                            {selectedDayEvents.events.map(event => (
+                                <div key={event.id} className="p-4 bg-light-blue-50 rounded-lg border border-blue-200">
+                                    <h4 className="font-bold text-xl text-blue-800 mb-3">{event.courseName}</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                        <InfoRow label="القاعة" value={event.hall} icon={<Building />} />
+                                        <InfoRow label="القسم" value={event.category} icon={<Tag />} />
+                                    </div>
+                                    <div className="flex justify-end gap-2 mt-4">
+                                        <Button variant="secondary" onClick={() => { setSelectedEvent(event); setIsFormOpen(true); setSelectedDayEvents(null); }}><Edit size={14}/></Button>
+                                        <Button variant="danger" onClick={() => openDeleteConfirm(event.id)}><Trash2 size={14}/></Button>
+                                    </div>
                                 </div>
-                                <div className="flex justify-end gap-2 mt-4">
-                                    <Button variant="secondary" onClick={() => { setSelectedEvent(event); setIsFormOpen(true); setSelectedDayEvents(null); }}><Edit size={14}/></Button>
-                                    <Button variant="danger" onClick={() => openDeleteConfirm(event.id)}><Trash2 size={14}/></Button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
                 </Modal>
             )}
              {isFormOpen && <ScheduleForm isOpen={isFormOpen} onClose={() => { setIsFormOpen(false); setSelectedEvent(null); }} onSave={handleSave} schedule={selectedEvent} />}
