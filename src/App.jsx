@@ -5,14 +5,9 @@ import { getFirestore, collection, doc, addDoc, getDocs, setDoc, onSnapshot, que
 import { Search, User, Users, Calendar, BookOpen, Edit, Trash2, PlusCircle, X, Clock, Building, Tag, Users as TraineesIcon, ClipboardList, List, DollarSign, Award, Percent, Star, XCircle, CheckCircle, BarChart2, Briefcase, AlertTriangle } from 'lucide-react';
 
 // --- تهيئة Firebase ---
-// ملاحظة: تم تعديل هذا الجزء ليعمل بشكل صحيح في بيئة الإنتاج (Canvas)
-// عند التشغيل المحلي، يجب عليك استبدال هذا الكائن ببيانات Firebase الخاصة بك
 const firebaseConfig = typeof __firebase_config !== 'undefined' && __firebase_config
     ? JSON.parse(__firebase_config)
     : {
-        // !! هام جداً للتشغيل المحلي !!
-        // استبدل هذه القيم بالقيم الصحيحة لمشروع Firebase الخاص بك
-        // يمكنك الحصول عليها من إعدادات مشروعك في Firebase Console
         apiKey: "YOUR_LOCAL_API_KEY",
         authDomain: "YOUR_LOCAL_AUTH_DOMAIN",
         projectId: "YOUR_LOCAL_PROJECT_ID",
@@ -20,6 +15,10 @@ const firebaseConfig = typeof __firebase_config !== 'undefined' && __firebase_co
         messagingSenderId: "YOUR_LOCAL_MESSAGING_SENDER_ID",
         appId: "YOUR_LOCAL_APP_ID"
     };
+
+if (firebaseConfig.apiKey === "YOUR_LOCAL_API_KEY") {
+    console.warn("Firebase config is using placeholder values. Please replace them with your actual Firebase project configuration for local development.");
+}
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'sila-center-app-v3-local';
 
@@ -124,49 +123,68 @@ export default function App() {
 
     const [loading, setLoading] = useState(true);
     
-    // useRef لتجنب إعادة تعريف المتغيرات مع كل تحديث
-    const initialLoadStatus = useRef({
+    const loadStatus = useRef({
+        trainees: false,
+        trainers: false,
+        schedules: false,
+    });
+     const seededStatus = useRef({
         trainees: false,
         trainers: false,
         schedules: false,
     });
 
+
     useEffect(() => {
+        console.log("Setting up auth state listener...");
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
+                console.log("User is signed in with UID:", user.uid);
                 setUserId(user.uid);
             } else {
+                 console.log("User is not signed in. Attempting custom/anonymous sign in.");
                  try {
                      const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
                      if(token) {
+                        console.log("Attempting sign in with custom token.");
                         await signInWithCustomToken(auth, token);
                      } else {
+                        console.log("Attempting anonymous sign in.");
                         await signInAnonymously(auth);
                      }
-                 } catch (error) { console.error("Error during sign-in:", error); }
+                 } catch (error) { 
+                    console.error("Error during sign-in:", error); 
+                 }
             }
+            console.log("Auth check complete. Setting isAuthReady to true.");
             setIsAuthReady(true);
         });
-        return () => unsubscribe();
+        return () => {
+            console.log("Cleaning up auth state listener.");
+            unsubscribe();
+        }
     }, []);
 
-    // *** useEffect المصحح لجلب البيانات ***
+    // *** useEffect المٌحسّن لجلب البيانات ***
     useEffect(() => {
-        if (!isAuthReady || !userId) return;
+        if (!isAuthReady || !userId) {
+            console.log("Data fetching skipped: Auth not ready or no user ID.", { isAuthReady, userId });
+            return;
+        }
 
+        console.log(`Starting data fetch for user ID: ${userId}`);
+        setLoading(true);
+        
+        loadStatus.current = { trainees: false, trainers: false, schedules: false };
+        
         const collections = { trainees: 'trainees', trainers: 'trainers', schedules: 'schedules' };
         const setters = { trainees: setTrainees, trainers: setTrainers, schedules: setSchedules };
         const initialDataMap = { trainees: initialTrainees, trainers: initialTrainers, schedules: initialSchedules };
-        
-        // إعادة تعيين حالة التحميل عند تغيير المستخدم
-        setLoading(true);
-        initialLoadStatus.current = { trainees: false, trainers: false, schedules: false };
-
 
         const checkAllLoaded = () => {
-            if (Object.values(initialLoadStatus.current).every(status => status === true)) {
+            if (Object.values(loadStatus.current).every(status => status)) {
+                console.log("All collections have reported their status. Setting loading to false.");
                 setLoading(false);
-                console.log("All collections loaded. UI is ready.");
             }
         };
 
@@ -175,40 +193,56 @@ export default function App() {
             const collectionPath = `artifacts/${appId}/users/${userId}/${collectionName}`;
             const q = query(collection(db, collectionPath));
             
+            console.log(`Attaching onSnapshot listener to: ${collectionPath}`);
+
             return onSnapshot(q, async (querySnapshot) => {
-                // التعامل مع حالة عدم وجود بيانات أولية (Seeding)
-                if (querySnapshot.empty && !initialLoadStatus.current[key]) {
-                    console.log(`Collection '${key}' is empty. Seeding initial data...`);
-                    const batch = writeBatch(db);
+                console.log(`Snapshot received for '${key}'. Empty: ${querySnapshot.empty}`);
+
+                if (querySnapshot.empty && !seededStatus.current[key]) {
+                    console.log(`Collection '${key}' is empty, attempting to seed initial data.`);
+                    seededStatus.current[key] = true; // Mark as "attempted to seed"
                     const initialData = initialDataMap[key];
+                    const batch = writeBatch(db);
                     initialData.forEach(item => {
                         const { id, ...data } = item;
                         const docRef = doc(db, collectionPath, id);
                         batch.set(docRef, data);
                     });
-                    await batch.commit();
-                    // سيتم استدعاء onSnapshot تلقائياً بعد إضافة البيانات، لذا لا نفعل شيئاً هنا
+                    
+                    try {
+                        await batch.commit();
+                        console.log(`Successfully seeded '${key}' with ${initialData.length} documents.`);
+                        // The onSnapshot listener will fire again automatically with the new data.
+                        // We don't need to manually set state here.
+                    } catch (e) {
+                        console.error(`Error seeding data for '${key}':`, e);
+                        // If seeding fails, we still mark it as "loaded" to prevent the app from hanging.
+                        setters[key]([]); // Set to empty array on failure
+                        loadStatus.current[key] = true;
+                        checkAllLoaded();
+                    }
                     return;
                 }
                 
                 const dataList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 setters[key](dataList);
+                console.log(`Updated state for '${key}' with ${dataList.length} documents.`);
 
-                // التأكد من أننا نوقف التحميل فقط بعد وصول الدفعة الأولى من البيانات
-                if (!initialLoadStatus.current[key]) {
-                    initialLoadStatus.current[key] = true;
+                if (!loadStatus.current[key]) {
+                    loadStatus.current[key] = true;
                     checkAllLoaded();
                 }
+
             }, (error) => {
-                console.error(`Error fetching ${key}:`, error);
-                // في حالة الخطأ، نعتبر أن المجموعة قد "انتهت" من التحميل لمنع توقف التطبيق
-                initialLoadStatus.current[key] = true;
+                console.error(`Error fetching snapshot for ${key} at ${collectionPath}:`, error);
+                // On error (e.g., permission denied), mark as loaded to avoid hanging
+                loadStatus.current[key] = true;
                 checkAllLoaded();
             });
         });
 
         return () => {
-            console.log("Cleaning up Firestore listeners.");
+            console.log("Cleaning up all Firestore listeners.");
             unsubscribers.forEach(unsub => unsub());
         };
     }, [isAuthReady, userId]);
@@ -277,6 +311,7 @@ const NavButton = ({ icon, text, active, onClick }) => (
     </button>
 );
 
+// --- باقي المكونات تبقى كما هي ---
 // --- لوحة الملخصات ---
 const DashboardView = ({ trainees, schedules, userRole }) => {
     const totalTrainees = trainees.length;
