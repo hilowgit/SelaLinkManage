@@ -5,20 +5,17 @@ import { getFirestore, collection, doc, addDoc, getDocs, setDoc, onSnapshot, que
 import { Search, User, Users, Calendar, BookOpen, Edit, Trash2, PlusCircle, X, Clock, Building, Tag, Users as TraineesIcon, ClipboardList, List, DollarSign, Award, Percent, Star, XCircle, CheckCircle, BarChart2, Briefcase, AlertTriangle } from 'lucide-react';
 
 // --- تهيئة Firebase ---
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyCCJk3zE35aV5viUS2ylimXPW3afapmAy4",
-  authDomain: "selalinkm.firebaseapp.com",
-  projectId: "selalinkm",
-  storageBucket: "selalinkm.firebasestorage.app",
-  messagingSenderId: "630104753476",
-  appId: "1:630104753476:web:c2a5aff861f8209999c311",
-  measurementId: "G-ZHT5B0G903"
-};
-
-if (firebaseConfig.apiKey === "YOUR_LOCAL_API_KEY") {
-    console.warn("Firebase config is using placeholder values. Please replace them with your actual Firebase project configuration for local development.");
-}
+const firebaseConfig = typeof __firebase_config !== 'undefined' && __firebase_config
+    ? JSON.parse(__firebase_config)
+    : {
+        apiKey: "AIzaSyCCLM3ZkT5aV1USly2uPKcKofapmkY4",
+        authDomain: "selalinkm.firebaseapp.com",
+        projectId: "selalinkm",
+        storageBucket: "selalinkm.appspot.com",
+        messagingSenderId: "630184793476",
+        appId: "1:630184793476:web:c245aff861f8204990c311",
+        measurementId: "G-ZHTF5H94H3"
+      };
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'sila-center-app-v3-local';
 
