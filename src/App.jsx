@@ -5,7 +5,6 @@ import { getFirestore, collection, doc, addDoc, getDocs, setDoc, onSnapshot, que
 import { Search, User, Users, Calendar, BookOpen, Edit, Trash2, PlusCircle, X, Clock, Building, Tag, Users as TraineesIcon, ClipboardList, List, DollarSign, Award, Percent, Star, XCircle, CheckCircle, BarChart2, Briefcase, AlertTriangle } from 'lucide-react';
 
 // --- تهيئة Firebase ---
-// --- Firebase Initialization ---
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -19,7 +18,7 @@ const appId = import.meta.env.VITE_APP_ID || 'sila-center-app-v3';
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-// --------------------------------
+
 // --- مكونات واجهة المستخدم المساعدة ---
 
 const Modal = ({ children, isOpen, onClose, title, size = '2xl' }) => {
@@ -187,7 +186,7 @@ export default function App() {
 
     return (
         <div dir="rtl" className="bg-gray-100 min-h-screen font-sans text-gray-900">
-            <div className="container mx-auto p-4 lg:p-8">
+            <div className="w-full max-w-screen-2xl mx-auto p-4 lg:p-8">
                 <header className="bg-white rounded-2xl shadow-lg p-6 mb-8">
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                         <div className="flex items-center gap-4">
@@ -834,5 +833,3 @@ const InfoRow = ({ label, value, icon }) => (
         <div className="text-gray-800">{value || '-'}</div>
     </div>
 );
-
-
