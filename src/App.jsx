@@ -15,7 +15,7 @@ let firebaseInitializationError = null;
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'sila-center-app-v3-local';
 
 const fallbackFirebaseConfig = {
-    apiKey: "YOUR_API_KEY_HERE", // !! ==> الرجاء استبدال هذا بمفتاح API الفعلي
+    apiKey: "AIzaSyCepkFpjkPvFY0z32sI3ix3LS72yTQs84A", // !! ==> الرجاء استبدال هذا بمفتاح API الفعلي
     authDomain: "selalinkm.firebaseapp.com",
     projectId: "selalinkm",
     storageBucket: "selalinkm.appspot.com",
@@ -601,8 +601,8 @@ const TrainerForm = ({ isOpen, onClose, onSave, trainer, isSaving }) => {
 
     const openCloudinaryWidget = () => {
         // !!! ==> استبدل هذه القيم بالقيم الحقيقية من حسابك في Cloudinary
-        const cloudName = "dox9ptv4t"; //  <-- ضع هنا اسم السحابة (Cloud Name)
-        const uploadPreset = "ml_default";   //  <-- ضع هنا مفتاح الرفع المسبق (Upload Preset)
+        const cloudName = "dnqhuye5h"; //  <-- ضع هنا اسم السحابة (Cloud Name)
+        const uploadPreset = "kaci9qnw";   //  <-- ضع هنا مفتاح الرفع المسبق (Upload Preset)
 
         if (!window.cloudinary) {
             console.error("Cloudinary widget is not loaded yet.");
