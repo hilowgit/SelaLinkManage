@@ -1,13 +1,12 @@
-// Version: CLOUDINARY-DOWNLOAD-FIX - 24/06/2025
+// Version: CLOUDINARY-DOWNLOAD-FIX-2 - 25/06/2025
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore, collection, doc, addDoc, getDocs, setDoc, onSnapshot, query, where, deleteDoc, writeBatch } from 'firebase/firestore';
-// تم إزالة مكتبات Firebase Storage
-import { Search, User, Users, Calendar, BookOpen, Edit, Trash2, PlusCircle, X, Clock, Building, Tag, Users as TraineesIcon, ClipboardList, List, DollarSign, Award, Percent, Star, XCircle, CheckCircle, BarChart2, Briefcase, AlertTriangle, FileText, Upload } from 'lucide-react';
+import { Search, User, Users, Calendar, BookOpen, Edit, Trash2, PlusCircle, X, Clock, Building, Tag, Users as TraineesIcon, ClipboardList, List, DollarSign, Award, Percent, Star, XCircle, CheckCircle, BarChart2, Briefcase, AlertTriangle, FileText, Upload, Download } from 'lucide-react';
 
 // --- تهيئة Firebase ---
-console.log("RUNNING CODE VERSION: CLOUDINARY-DOWNLOAD-FIX");
+console.log("RUNNING CODE VERSION: CLOUDINARY-DOWNLOAD-FIX-2");
 
 let app, auth, db;
 let firebaseInitializationError = null;
@@ -446,17 +445,17 @@ const TraineeForm = ({ isOpen, onClose, onSave, trainee }) => {
         <Modal isOpen={isOpen} onClose={onClose} title={trainee ? 'تعديل بيانات المتدرب' : 'إضافة متدرب جديد'} size="4xl">
              <form onSubmit={handleSubmit} className="space-y-6">
                  {/* Trainee Form fields */}
-                <div className="flex justify-end gap-4 mt-8 pt-6 border-t">
-                    <Button variant="secondary" onClick={onClose}>إلغاء</Button>
-                    <Button type="submit">حفظ البيانات</Button>
-                </div>
-            </form>
+                 <div className="flex justify-end gap-4 mt-8 pt-6 border-t">
+                     <Button variant="secondary" onClick={onClose}>إلغاء</Button>
+                     <Button type="submit">حفظ البيانات</Button>
+                 </div>
+             </form>
         </Modal>
     );
 };
 
 
-// --- Trainers Section (UPDATED WITH CLOUDINARY) ---
+// --- Trainers Section (UPDATED WITH CLOUDINARY FIX) ---
 const TrainersView = ({ data, userId, userRole }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selected, setSelected] = useState(null);
@@ -560,8 +559,9 @@ const TrainersView = ({ data, userId, userRole }) => {
                         </InfoSection>
                         <InfoSection title="السيرة الذاتية">
                             {selected.cvUrl ? (
-                                <a href={selected.cvUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-2">
-                                    <FileText size={18} /> {selected.cvPublicId || 'عرض الملف'}
+                                // *** MODIFIED: Added download attribute to the anchor tag ***
+                                <a href={selected.cvUrl} download target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-2">
+                                    <Download size={18} /> {selected.cvPublicId || 'تحميل الملف'}
                                 </a>
                             ) : (
                                 <p className="text-gray-500">لا توجد سيرة ذاتية مرفقة.</p>
@@ -613,22 +613,12 @@ const TrainerForm = ({ isOpen, onClose, onSave, trainer, isSaving }) => {
             if (!error && result && result.event === "success") {
                 console.log('Done! Here is the file info: ', result.info);
                 
-                const originalUrl = result.info.secure_url;
-                let finalUrl = originalUrl;
-
-                // *** تعديل مهم: تحويل الرابط إلى رابط تحميل مباشر للـ PDF ***
-                if (result.info.format === 'pdf') {
-                    const urlParts = originalUrl.split('/upload/');
-                    if (urlParts.length === 2) {
-                         // نضيف `fl_attachment` ليتم تحميل الملف بدلاً من عرضه
-                         finalUrl = `${urlParts[0]}/upload/fl_attachment/${urlParts[1]}`;
-                         console.log("Reconstructed PDF URL for download:", finalUrl);
-                    }
-                }
-
+                // *** MODIFIED: Removed URL manipulation to prevent 401 error. ***
+                // We will now save the original secure_url from Cloudinary.
+                // The download functionality will be handled by the 'download' attribute in the <a> tag.
                 setFormData(prev => ({
                     ...prev,
-                    cvUrl: finalUrl, // استخدام الرابط الجديد
+                    cvUrl: result.info.secure_url, // Use the original unmodified URL
                     cvPublicId: result.info.public_id,
                 }));
             }
@@ -684,8 +674,9 @@ const TrainerForm = ({ isOpen, onClose, onSave, trainer, isSaving }) => {
                     {formData.cvUrl && (
                         <div className="mt-4">
                             <p className="text-sm font-medium text-gray-700">الملف المرفوع حالياً:</p>
-                            <a href={formData.cvUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-2 mt-1">
-                                <FileText size={16}/> {formData.cvPublicId || 'تحميل الملف'}
+                             {/* *** MODIFIED: Added download attribute and changed text *** */}
+                            <a href={formData.cvUrl} download target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-2 mt-1">
+                                <Download size={16}/> {formData.cvPublicId || 'تحميل الملف'}
                             </a>
                         </div>
                     )}
