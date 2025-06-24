@@ -1,4 +1,4 @@
-// Version: FINAL-HARDCODE-FIX - 24/06/2025
+// Version: DYNAMIC-CONFIG-FIX - 24/06/2025
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
@@ -6,25 +6,30 @@ import { getFirestore, collection, doc, addDoc, getDocs, setDoc, onSnapshot, que
 import { Search, User, Users, Calendar, BookOpen, Edit, Trash2, PlusCircle, X, Clock, Building, Tag, Users as TraineesIcon, ClipboardList, List, DollarSign, Award, Percent, Star, XCircle, CheckCircle, BarChart2, Briefcase, AlertTriangle } from 'lucide-react';
 
 // --- تهيئة Firebase ---
-// The API key is now hardcoded to resolve the build environment issue.
-console.log("RUNNING CODE VERSION: FINAL-HARDCODE-FIX"); 
+// تم إصلاح مشكلة مفتاح API غير صالح (auth/api-key-not-valid)
+// يتم الآن تحميل إعدادات Firebase من بيئة التشغيل بدلاً من استخدام مفتاح ثابت.
+// هذا يضمن أن التطبيق يستخدم دائمًا بيانات اعتماد صالحة.
+console.log("RUNNING CODE VERSION: DYNAMIC-CONFIG-FIX");
 
-const firebaseConfig = {
-    apiKey: "AIzaSyDNpZkYVtwQIhT4oI1sP9z6fM1i3Jc8wXk", // The key is hardcoded here.
-    authDomain: "selalinkm.firebaseapp.com",
-    projectId: "selalinkm",
-    storageBucket: "selalinkm.appspot.com",
-    messagingSenderId: "630184793476",
-    appId: "1:630184793476:web:c245aff861f8204990c311",
-    measurementId: "G-ZHTF5H94H3"
-};
-
+let app, auth, db;
+let firebaseInitializationError = null;
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'sila-center-app-v3-local';
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+try {
+    // يتم توفير __firebase_config بواسطة بيئة التشغيل. إذا لم تكن موجودة، سيحدث خطأ.
+    // هذا أفضل من استخدام مفتاح غير صالح.
+    const firebaseConfig = JSON.parse(__firebase_config);
+    if (!firebaseConfig || !firebaseConfig.apiKey) {
+        throw new Error("Firebase config is missing or invalid.");
+    }
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+} catch (e) {
+    console.error("Firebase Initialization Failed. Check if __firebase_config is provided correctly.", e);
+    firebaseInitializationError = e;
+}
 
 
 // --- مكونات واجهة المستخدم المساعدة ---
@@ -134,6 +139,23 @@ export default function App() {
         schedules: false,
     });
 
+    // عرض رسالة خطأ إذا فشلت تهيئة Firebase
+    if (firebaseInitializationError) {
+        return (
+            <div dir="rtl" className="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+                 <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full text-center">
+                    <XCircle className="mx-auto h-16 w-16 text-red-500 mb-4" />
+                    <h1 className="text-2xl font-bold text-gray-800 mb-2">خطأ فادح في تهيئة التطبيق</h1>
+                    <p className="text-gray-600 mb-6">لا يمكن بدء تشغيل التطبيق بسبب مشكلة في إعدادات Firebase.</p>
+                    <div className="text-left bg-red-50 p-4 rounded-lg">
+                        <p className="font-semibold text-red-800">تفاصيل الخطأ:</p>
+                        <pre className="text-sm text-red-700 whitespace-pre-wrap break-all">{firebaseInitializationError.message}</pre>
+                    </div>
+                    <p className="mt-6 text-sm text-gray-500">يرجى التأكد من أن التطبيق يعمل في بيئة توفر إعدادات Firebase الصحيحة.</p>
+                </div>
+            </div>
+        );
+    }
 
     useEffect(() => {
         console.log("Setting up auth state listener...");
@@ -144,16 +166,16 @@ export default function App() {
             } else {
                  console.log("User is not signed in. Attempting custom/anonymous sign in.");
                  try {
-                     const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-                     if(token) {
-                        console.log("Attempting sign in with custom token.");
-                        await signInWithCustomToken(auth, token);
-                     } else {
-                        console.log("Attempting anonymous sign in.");
-                        await signInAnonymously(auth);
-                     }
+                      const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                      if(token) {
+                           console.log("Attempting sign in with custom token.");
+                           await signInWithCustomToken(auth, token);
+                      } else {
+                           console.log("Attempting anonymous sign in.");
+                           await signInAnonymously(auth);
+                      }
                  } catch (error) { 
-                    console.error("Error during sign-in:", error); 
+                     console.error("Error during sign-in:", error); 
                  }
             }
             console.log("Auth check complete. Setting isAuthReady to true.");
@@ -797,8 +819,8 @@ const ScheduleView = ({ data, userId, userRole }) => {
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                  <h3 className="text-2xl font-bold">{currentDate.toLocaleString('ar-EG', { month: 'long', year: 'numeric' })}</h3>
                  <div className="flex gap-2">
-                    <Button onClick={() => changeMonth(-1)}>الشهر السابق</Button>
-                    <Button onClick={() => changeMonth(1)}>الشهر التالي</Button>
+                     <Button onClick={() => changeMonth(-1)}>الشهر السابق</Button>
+                     <Button onClick={() => changeMonth(1)}>الشهر التالي</Button>
                  </div>
                  <Button onClick={() => { setSelectedEvent(null); setIsFormOpen(true); }}><PlusCircle/> إضافة موعد جديد</Button>
             </div>
@@ -820,7 +842,7 @@ const ScheduleView = ({ data, userId, userRole }) => {
 
             {selectedDayEvents && (
                 <Modal isOpen={!!selectedDayEvents} onClose={() => setSelectedDayEvents(null)} title={`جدول يوم ${selectedDayEvents.day} ${currentDate.toLocaleString('ar-EG', { month: 'long' })}`}>
-                       <div className="space-y-4">
+                        <div className="space-y-4">
                             {selectedDayEvents.events.map(event => (
                                 <div key={event.id} className="p-4 bg-light-blue-50 rounded-lg border border-blue-200">
                                     <h4 className="font-bold text-xl text-blue-800 mb-3">{event.courseName}</h4>
