@@ -1,4 +1,4 @@
-// Version: DYNAMIC-CONFIG-FIX - 24/06/2025
+// Version: FALLBACK-CONFIG-FIX - 24/06/2025
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
@@ -6,28 +6,49 @@ import { getFirestore, collection, doc, addDoc, getDocs, setDoc, onSnapshot, que
 import { Search, User, Users, Calendar, BookOpen, Edit, Trash2, PlusCircle, X, Clock, Building, Tag, Users as TraineesIcon, ClipboardList, List, DollarSign, Award, Percent, Star, XCircle, CheckCircle, BarChart2, Briefcase, AlertTriangle } from 'lucide-react';
 
 // --- تهيئة Firebase ---
-// تم إصلاح مشكلة مفتاح API غير صالح (auth/api-key-not-valid)
-// يتم الآن تحميل إعدادات Firebase من بيئة التشغيل بدلاً من استخدام مفتاح ثابت.
-// هذا يضمن أن التطبيق يستخدم دائمًا بيانات اعتماد صالحة.
-console.log("RUNNING CODE VERSION: DYNAMIC-CONFIG-FIX");
+// الإصلاح: تمت إضافة آلية احتياطية.
+// 1. يحاول استخدام __firebase_config من بيئة التشغيل.
+// 2. إذا لم تكن موجودة، فإنه يعود إلى الإعدادات المضمنة أدناه.
+// !! هام: الرجاء إدخال مفتاح API الصحيح الخاص بك في "YOUR_API_KEY_HERE".
+console.log("RUNNING CODE VERSION: FALLBACK-CONFIG-FIX");
 
 let app, auth, db;
 let firebaseInitializationError = null;
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'sila-center-app-v3-local';
 
+// الإعدادات الاحتياطية
+const fallbackFirebaseConfig = {
+    // !!! ==> الرجاء استبدال "YOUR_API_KEY_HERE" بمفتاح API الفعلي من مشروع Firebase الخاص بك.
+    apiKey: "AIzaSyCepkFpjkPvFY0z32sI3ix3LS72yTQs84A", 
+    authDomain: "selalinkm.firebaseapp.com",
+    projectId: "selalinkm",
+    storageBucket: "selalinkm.appspot.com",
+    messagingSenderId: "630184793476",
+    appId: "1:630184793476:web:c245aff861f8204990c311",
+    measurementId: "G-ZHTF5H94H3"
+};
+
+
 try {
-    // يتم توفير __firebase_config بواسطة بيئة التشغيل. إذا لم تكن موجودة، سيحدث خطأ.
-    // هذا أفضل من استخدام مفتاح غير صالح.
-    const firebaseConfig = JSON.parse(__firebase_config);
-    if (!firebaseConfig || !firebaseConfig.apiKey) {
-        throw new Error("Firebase config is missing or invalid.");
+    let firebaseConfig;
+    if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+        console.log("Using provided __firebase_config.");
+        firebaseConfig = JSON.parse(__firebase_config);
+    } else {
+        console.log("Falling back to hardcoded config. Ensure API key is set.");
+        firebaseConfig = fallbackFirebaseConfig;
     }
+
+    if (!firebaseConfig || !firebaseConfig.apiKey || firebaseConfig.apiKey === "YOUR_API_KEY_HERE") {
+        throw new Error("Firebase API key is missing or is a placeholder. Please update it in the code.");
+    }
+
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
 } catch (e) {
-    console.error("Firebase Initialization Failed. Check if __firebase_config is provided correctly.", e);
+    console.error("Firebase Initialization Failed:", e);
     firebaseInitializationError = e;
 }
 
@@ -151,7 +172,7 @@ export default function App() {
                         <p className="font-semibold text-red-800">تفاصيل الخطأ:</p>
                         <pre className="text-sm text-red-700 whitespace-pre-wrap break-all">{firebaseInitializationError.message}</pre>
                     </div>
-                    <p className="mt-6 text-sm text-gray-500">يرجى التأكد من أن التطبيق يعمل في بيئة توفر إعدادات Firebase الصحيحة.</p>
+                    <p className="mt-6 text-sm text-gray-500">إذا كنت تستخدم الإعدادات المضمنة، يرجى التأكد من استبدال "YOUR_API_KEY_HERE" بالمفتاح الصحيح.</p>
                 </div>
             </div>
         );
