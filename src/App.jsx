@@ -1,13 +1,13 @@
-// Version: CLOUDINARY-INTEGRATION - 24/06/2025
+// Version: CLOUDINARY-DOWNLOAD-FIX - 24/06/2025
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore, collection, doc, addDoc, getDocs, setDoc, onSnapshot, query, where, deleteDoc, writeBatch } from 'firebase/firestore';
-// تم إزالة مكتبات Firebase Storage لأنها لم تعد مطلوبة لرفع السيرة الذاتية
+// تم إزالة مكتبات Firebase Storage
 import { Search, User, Users, Calendar, BookOpen, Edit, Trash2, PlusCircle, X, Clock, Building, Tag, Users as TraineesIcon, ClipboardList, List, DollarSign, Award, Percent, Star, XCircle, CheckCircle, BarChart2, Briefcase, AlertTriangle, FileText, Upload } from 'lucide-react';
 
 // --- تهيئة Firebase ---
-console.log("RUNNING CODE VERSION: CLOUDINARY-INTEGRATION");
+console.log("RUNNING CODE VERSION: CLOUDINARY-DOWNLOAD-FIX");
 
 let app, auth, db;
 let firebaseInitializationError = null;
@@ -27,10 +27,8 @@ const fallbackFirebaseConfig = {
 try {
     let firebaseConfig;
     if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-        console.log("Using provided __firebase_config.");
         firebaseConfig = JSON.parse(__firebase_config);
     } else {
-        console.log("Falling back to hardcoded config. Ensure API key is set.");
         firebaseConfig = fallbackFirebaseConfig;
     }
 
@@ -41,7 +39,6 @@ try {
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
-    // لم نعد بحاجة لتهيئة storage هنا
 } catch (e) {
     console.error("Firebase Initialization Failed:", e);
     firebaseInitializationError = e;
@@ -479,7 +476,6 @@ const TrainersView = ({ data, userId, userRole }) => {
             dataToSave.specialties = dataToSave.specialties.split(',').map(s => s.trim()).filter(Boolean);
         }
         
-        // The upload is already handled by Cloudinary widget, we just save the URL and Public ID
         try {
             if (id) {
                 await setDoc(doc(db, dbPath, id), dataToSave);
@@ -504,13 +500,10 @@ const TrainersView = ({ data, userId, userRole }) => {
 
     const handleDelete = async () => {
         if (itemToDelete) {
-            // Deleting from Cloudinary requires a secure backend call to protect your API secret.
-            // This should not be done from the client-side.
             if (itemToDelete.cvPublicId) {
                 console.warn(`DELETION FROM CLOUDINARY: This must be handled by a secure backend function. Public ID to delete: ${itemToDelete.cvPublicId}`);
             }
 
-            // Delete trainer document from firestore
             try {
                 await deleteDoc(doc(db, `artifacts/${appId}/users/${userId}/trainers`, itemToDelete.id));
             } catch (error) { console.error("Error deleting trainer doc:", error); }
@@ -600,9 +593,8 @@ const TrainerForm = ({ isOpen, onClose, onSave, trainer, isSaving }) => {
     const handleChange = (e) => setFormData({ ...formData, [e.target.id]: e.target.value });
 
     const openCloudinaryWidget = () => {
-        // !!! ==> استبدل هذه القيم بالقيم الحقيقية من حسابك في Cloudinary
-        const cloudName = "dnqhuye5h"; //  <-- ضع هنا اسم السحابة (Cloud Name)
-        const uploadPreset = "kaci9qnw";   //  <-- ضع هنا مفتاح الرفع المسبق (Upload Preset)
+        const cloudName = "dnqhuye5h"; 
+        const uploadPreset = "kaci9qnw";
 
         if (!window.cloudinary) {
             console.error("Cloudinary widget is not loaded yet.");
@@ -620,9 +612,23 @@ const TrainerForm = ({ isOpen, onClose, onSave, trainer, isSaving }) => {
         }, (error, result) => {
             if (!error && result && result.event === "success") {
                 console.log('Done! Here is the file info: ', result.info);
+                
+                const originalUrl = result.info.secure_url;
+                let finalUrl = originalUrl;
+
+                // *** تعديل مهم: تحويل الرابط إلى رابط تحميل مباشر للـ PDF ***
+                if (result.info.format === 'pdf') {
+                    const urlParts = originalUrl.split('/upload/');
+                    if (urlParts.length === 2) {
+                         // نضيف `fl_attachment` ليتم تحميل الملف بدلاً من عرضه
+                         finalUrl = `${urlParts[0]}/upload/fl_attachment/${urlParts[1]}`;
+                         console.log("Reconstructed PDF URL for download:", finalUrl);
+                    }
+                }
+
                 setFormData(prev => ({
                     ...prev,
-                    cvUrl: result.info.secure_url,
+                    cvUrl: finalUrl, // استخدام الرابط الجديد
                     cvPublicId: result.info.public_id,
                 }));
             }
@@ -631,7 +637,7 @@ const TrainerForm = ({ isOpen, onClose, onSave, trainer, isSaving }) => {
     
     useEffect(() => {
         const scriptId = "cloudinary-upload-widget-script";
-        if (document.getElementById(scriptId)) return; // Avoid adding script multiple times
+        if (document.getElementById(scriptId)) return; 
 
         const script = document.createElement('script');
         script.id = scriptId;
@@ -642,7 +648,7 @@ const TrainerForm = ({ isOpen, onClose, onSave, trainer, isSaving }) => {
         return () => {
              const existingScript = document.getElementById(scriptId);
              if (existingScript) {
-                // document.body.removeChild(existingScript);
+                // It's better not to remove the script to avoid issues on re-renders
              }
         };
     }, []);
@@ -679,7 +685,7 @@ const TrainerForm = ({ isOpen, onClose, onSave, trainer, isSaving }) => {
                         <div className="mt-4">
                             <p className="text-sm font-medium text-gray-700">الملف المرفوع حالياً:</p>
                             <a href={formData.cvUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-2 mt-1">
-                                <FileText size={16}/> {formData.cvPublicId || 'عرض الملف'}
+                                <FileText size={16}/> {formData.cvPublicId || 'تحميل الملف'}
                             </a>
                         </div>
                     )}
