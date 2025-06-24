@@ -1,18 +1,19 @@
-// Version: REMOVE-REVENUE-FIX - 24/06/2025
+// Version: TRAINER-CV-UPLOAD-FIX - 24/06/2025
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore, collection, doc, addDoc, getDocs, setDoc, onSnapshot, query, where, deleteDoc, writeBatch } from 'firebase/firestore';
-import { Search, User, Users, Calendar, BookOpen, Edit, Trash2, PlusCircle, X, Clock, Building, Tag, Users as TraineesIcon, ClipboardList, List, DollarSign, Award, Percent, Star, XCircle, CheckCircle, BarChart2, Briefcase, AlertTriangle } from 'lucide-react';
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { Search, User, Users, Calendar, BookOpen, Edit, Trash2, PlusCircle, X, Clock, Building, Tag, Users as TraineesIcon, ClipboardList, List, DollarSign, Award, Percent, Star, XCircle, CheckCircle, BarChart2, Briefcase, AlertTriangle, FileText, Upload } from 'lucide-react';
 
 // --- تهيئة Firebase ---
 // الإصلاح: تمت إضافة آلية احتياطية.
 // 1. يحاول استخدام __firebase_config من بيئة التشغيل.
 // 2. إذا لم تكن موجودة، فإنه يعود إلى الإعدادات المضمنة أدناه.
 // !! هام: الرجاء إدخال مفتاح API الصحيح الخاص بك في "YOUR_API_KEY_HERE".
-console.log("RUNNING CODE VERSION: FALLBACK-CONFIG-FIX");
+console.log("RUNNING CODE VERSION: TRAINER-CV-UPLOAD-FIX");
 
-let app, auth, db;
+let app, auth, db, storage;
 let firebaseInitializationError = null;
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'sila-center-app-v3-local';
@@ -47,6 +48,7 @@ try {
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
+    storage = getStorage(app); // تهيئة خدمة التخزين
 } catch (e) {
     console.error("Firebase Initialization Failed:", e);
     firebaseInitializationError = e;
@@ -128,7 +130,7 @@ const initialTrainees = [
 ];
 
 const initialTrainers = [
-    { id: 'tr1', fullName: 'خالد عبد الرحمن', phoneNumber: '0911223344', address: 'دمشق - كفرسوسة', nationalId: '03040506070', dob: '1985-03-10', motherName: 'هند', education: 'ماجستير إدارة أعمال', contractStartDate: '2022-01-01', contractEndDate: '2024-01-01', specialties: ['إدارة المشاريع', 'التسويق'], contractTerminated: { status: false, reason: '' }, coursesTaught: [{ name: 'إدارة المشاريع PMP', hours: 35, count: 5, startDate: '2022-02-01' }], wages: [{ course: 'إدارة المشاريع PMP', amount: 5000000 }] },
+    { id: 'tr1', fullName: 'خالد عبد الرحمن', phoneNumber: '0911223344', address: 'دمشق - كفرسوسة', nationalId: '03040506070', dob: '1985-03-10', motherName: 'هند', education: 'ماجستير إدارة أعمال', contractStartDate: '2022-01-01', contractEndDate: '2024-01-01', specialties: ['إدارة المشاريع', 'التسويق'], contractTerminated: { status: false, reason: '' }, coursesTaught: [{ name: 'إدارة المشاريع PMP', hours: 35, count: 5, startDate: '2022-02-01' }], wages: [{ course: 'إدارة المشاريع PMP', amount: 5000000 }], cvUrl: '', cvFileName: '' },
 ];
 
 const initialSchedules = [
@@ -370,7 +372,7 @@ const DashboardView = ({ trainees, schedules, userRole }) => {
 
     return (
         <div className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <StatCard icon={<Users />} title="إجمالي المتدربين" value={totalTrainees} color="blue" />
                 <StatCard icon={<Calendar />} title="الكورسات النشطة" value={activeCourses} color="green" />
             </div>
@@ -636,16 +638,41 @@ const TrainersView = ({ data, userId, userRole }) => {
     const [selected, setSelected] = useState(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-    const [itemToDelete, setItemToDelete] = useState(null);
+    const [itemToDelete, setItemToDelete] = useState(null); // Will hold the full trainer object for deletion
+    const [isUploading, setIsUploading] = useState(false);
 
     const filteredData = data.filter(item => item.fullName.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    const handleSave = async (formData) => {
+    const handleSave = async (formData, cvFile) => {
+        setIsUploading(true);
         const dbPath = `artifacts/${appId}/users/${userId}/trainers`;
         const { id, ...dataToSave } = formData;
-        // Convert specialties string to array
+        
         if (typeof dataToSave.specialties === 'string') {
             dataToSave.specialties = dataToSave.specialties.split(',').map(s => s.trim()).filter(Boolean);
+        }
+
+        if (cvFile) {
+            if (formData.cvFileName) {
+                const oldFileRef = ref(storage, `trainers-cvs/${userId}/${formData.cvFileName}`);
+                try {
+                    await deleteObject(oldFileRef);
+                    console.log("Old CV deleted successfully.");
+                } catch (error) {
+                    console.error("Error deleting old CV:", error);
+                }
+            }
+            const newFileRef = ref(storage, `trainers-cvs/${userId}/${Date.now()}-${cvFile.name}`);
+            try {
+                const snapshot = await uploadBytes(newFileRef, cvFile);
+                dataToSave.cvUrl = await getDownloadURL(snapshot.ref);
+                dataToSave.cvFileName = snapshot.metadata.name;
+                console.log("New CV uploaded successfully.");
+            } catch (error) {
+                console.error("Error uploading CV:", error);
+                setIsUploading(false);
+                return; // Stop execution if upload fails
+            }
         }
 
         try {
@@ -655,23 +682,37 @@ const TrainersView = ({ data, userId, userRole }) => {
                 await addDoc(collection(db, dbPath), dataToSave);
             }
         } catch (error) { console.error("Error saving trainer:", error); }
+        
+        setIsUploading(false);
         setIsFormOpen(false);
         setSelected(null);
     };
 
-    const openDeleteConfirm = (id) => {
-        setItemToDelete(id);
+    const openDeleteConfirm = (trainer) => {
+        setItemToDelete(trainer);
         setIsConfirmOpen(true);
     };
 
     const handleDelete = async () => {
         if (itemToDelete) {
+            // Delete CV from storage if it exists
+            if (itemToDelete.cvFileName) {
+                try {
+                    const fileRef = ref(storage, `trainers-cvs/${userId}/${itemToDelete.cvFileName}`);
+                    await deleteObject(fileRef);
+                } catch (error) {
+                    console.error("Error deleting trainer CV from storage:", error);
+                }
+            }
+
+            // Delete trainer document from firestore
             try {
-                await deleteDoc(doc(db, `artifacts/${appId}/users/${userId}/trainers`, itemToDelete));
-            } catch (error) { console.error("Error deleting trainer:", error); }
+                await deleteDoc(doc(db, `artifacts/${appId}/users/${userId}/trainers`, itemToDelete.id));
+            } catch (error) { console.error("Error deleting trainer doc:", error); }
+            
             setIsConfirmOpen(false);
             setItemToDelete(null);
-            if(selected?.id === itemToDelete) setSelected(null);
+            if(selected?.id === itemToDelete.id) setSelected(null);
         }
     };
 
@@ -688,12 +729,15 @@ const TrainersView = ({ data, userId, userRole }) => {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredData.map(trainer => (
                     <div key={trainer.id} className="bg-gray-50 border border-gray-200 p-5 rounded-2xl cursor-pointer hover:shadow-xl hover:border-blue-400 transition-all duration-300" onClick={() => setSelected(trainer)}>
-                        <div className="flex items-center gap-4 mb-4">
-                            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center"><Briefcase className="text-green-500" size={32}/></div>
-                            <div>
-                                <h3 className="font-bold text-lg text-gray-800">{trainer.fullName}</h3>
-                                <p className="text-gray-500 text-sm">{Array.isArray(trainer.specialties) ? trainer.specialties.join(', ') : ''}</p>
+                        <div className="flex justify-between items-start">
+                             <div className="flex items-center gap-4 mb-4">
+                                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center"><Briefcase className="text-green-500" size={32}/></div>
+                                <div>
+                                    <h3 className="font-bold text-lg text-gray-800">{trainer.fullName}</h3>
+                                    <p className="text-gray-500 text-sm">{Array.isArray(trainer.specialties) ? trainer.specialties.join(', ') : ''}</p>
+                                </div>
                             </div>
+                            {trainer.cvUrl && <FileText className="text-gray-400" />}
                         </div>
                     </div>
                 ))}
@@ -703,46 +747,69 @@ const TrainersView = ({ data, userId, userRole }) => {
                 <Modal isOpen={!!selected} onClose={() => setSelected(null)} title={`تفاصيل المدرب: ${selected.fullName}`} size="4xl">
                     <div className="space-y-6">
                         <InfoSection title="البيانات الشخصية">
-                            <InfoRow label="الاسم" value={selected.fullName} />
-                            <InfoRow label="الهاتف" value={selected.phoneNumber} />
-                            <InfoRow label="الاختصاصات" value={Array.isArray(selected.specialties) ? selected.specialties.join('، ') : ''} />
+                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                             <InfoRow label="الاسم" value={selected.fullName} />
+                             <InfoRow label="الهاتف" value={selected.phoneNumber} />
+                             <InfoRow label="الاختصاصات" value={Array.isArray(selected.specialties) ? selected.specialties.join('، ') : ''} />
+                             <InfoRow label="الرقم الوطني" value={selected.nationalId} />
+                             <InfoRow label="تاريخ الميلاد" value={selected.dob} />
+                             <InfoRow label="التحصيل العلمي" value={selected.education} />
+                           </div>
                         </InfoSection>
                         <InfoSection title="بيانات التعاقد">
-                            <InfoRow label="تاريخ بدء التعاقد" value={selected.contractStartDate} />
-                            <InfoRow label="تاريخ انتهاء التعاقد" value={selected.contractEndDate} />
+                            <InfoRow label="بدء التعاقد" value={selected.contractStartDate} />
+                            <InfoRow label="انتهاء التعاقد" value={selected.contractEndDate} />
                         </InfoSection>
+                        <InfoSection title="السيرة الذاتية">
+                            {selected.cvUrl ? (
+                                <a href={selected.cvUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-2">
+                                   <FileText size={18}/> {selected.cvFileName || 'عرض الملف'}
+                                </a>
+                            ) : (
+                                <p className="text-gray-500">لا توجد سيرة ذاتية مرفقة.</p>
+                            )}
+                        </InfoSection>
+
                         <div className="flex justify-end gap-4 pt-4 border-t mt-6">
                             <Button variant="secondary" onClick={() => setIsFormOpen(true)}><Edit size={16}/> تعديل</Button>
                             {userRole === 'admin' && (
-                                <Button variant="danger" onClick={() => openDeleteConfirm(selected.id)}><Trash2 size={16}/> حذف</Button>
+                                <Button variant="danger" onClick={() => openDeleteConfirm(selected)}><Trash2 size={16}/> حذف</Button>
                             )}
                         </div>
                     </div>
                 </Modal>
             )}
 
-            {isFormOpen && <TrainerForm isOpen={isFormOpen} onClose={() => { setIsFormOpen(false); setSelected(null); }} onSave={handleSave} trainer={selected} />}
-            <ConfirmModal isOpen={isConfirmOpen} onClose={() => setIsConfirmOpen(false)} onConfirm={handleDelete} title="تأكيد الحذف" message="هل أنت متأكد من رغبتك في حذف بيانات هذا المدرب؟" />
+            {isFormOpen && <TrainerForm isOpen={isFormOpen} onClose={() => { setIsFormOpen(false); setSelected(null); }} onSave={handleSave} trainer={selected} isSaving={isUploading}/>}
+            <ConfirmModal isOpen={isConfirmOpen} onClose={() => setIsConfirmOpen(false)} onConfirm={handleDelete} title="تأكيد الحذف" message="هل أنت متأكد من رغبتك في حذف بيانات هذا المدرب وسيرته الذاتية؟" />
         </div>
     );
 };
 
-const TrainerForm = ({ isOpen, onClose, onSave, trainer }) => {
+const TrainerForm = ({ isOpen, onClose, onSave, trainer, isSaving }) => {
     const [formData, setFormData] = useState(
         trainer ? { ...trainer, specialties: Array.isArray(trainer.specialties) ? trainer.specialties.join(', ') : '' } : 
-        { fullName: '', phoneNumber: '', address: '', nationalId: '', dob: '', motherName: '', education: '', contractStartDate: '', contractEndDate: '', specialties: '' }
+        { fullName: '', phoneNumber: '', address: '', nationalId: '', dob: '', motherName: '', education: '', contractStartDate: '', contractEndDate: '', specialties: '', cvUrl: '', cvFileName: '' }
     );
+    const [cvFile, setCvFile] = useState(null);
 
     const handleChange = (e) => setFormData({ ...formData, [e.target.id]: e.target.value });
+    
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setCvFile(file);
+        }
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onSave(formData);
+        onSave(formData, cvFile);
     };
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={trainer ? 'تعديل بيانات المدرب' : 'إضافة مدرب جديد'} size="4xl">
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6">
                     <Input label="الاسم الثلاثي" id="fullName" value={formData.fullName} onChange={handleChange} required />
                     <Input label="رقم الهاتف" id="phoneNumber" value={formData.phoneNumber} onChange={handleChange} />
@@ -757,9 +824,20 @@ const TrainerForm = ({ isOpen, onClose, onSave, trainer }) => {
                         <Input label="الاختصاصات (مفصولة بفاصلة)" id="specialties" value={formData.specialties} onChange={handleChange} />
                     </div>
                 </div>
+
+                <InfoSection title="السيرة الذاتية (CV)">
+                     <label htmlFor="cvUpload" className="block text-sm font-medium text-gray-700 mb-1">رفع ملف (PDF, DOC, DOCX)</label>
+                     <input type="file" id="cvUpload" accept=".pdf,.doc,.docx" onChange={handleFileChange} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                     {(cvFile || formData.cvFileName) && (
+                        <p className="text-sm text-gray-600 mt-2">الملف الحالي: {cvFile?.name || formData.cvFileName}</p>
+                     )}
+                </InfoSection>
+
                 <div className="flex justify-end gap-4 mt-8 pt-6 border-t">
-                    <Button variant="secondary" onClick={onClose}>إلغاء</Button>
-                    <Button type="submit">حفظ البيانات</Button>
+                    <Button variant="secondary" type="button" onClick={onClose} disabled={isSaving}>إلغاء</Button>
+                    <Button type="submit" disabled={isSaving}>
+                        {isSaving ? 'جارِ الحفظ...' : 'حفظ البيانات'}
+                    </Button>
                 </div>
             </form>
         </Modal>
