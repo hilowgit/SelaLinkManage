@@ -1,4 +1,4 @@
-// Version: FALLBACK-CONFIG-FIX - 24/06/2025
+// Version: REMOVE-REVENUE-FIX - 24/06/2025
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
@@ -359,10 +359,6 @@ const NavButton = ({ icon, text, active, onClick }) => (
 const DashboardView = ({ trainees, schedules, userRole }) => {
     const totalTrainees = trainees.length;
     const activeCourses = schedules.filter(s => new Date(s.endDate) >= new Date()).length;
-    
-    const totalRevenue = useMemo(() => 
-        trainees.flatMap(t => t.courses || []).reduce((acc, course) => acc + (course.discountedPrice || 0), 0)
-    , [trainees]);
 
     const courseTraineeCounts = useMemo(() => {
         const counts = {};
@@ -377,9 +373,6 @@ const DashboardView = ({ trainees, schedules, userRole }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <StatCard icon={<Users />} title="إجمالي المتدربين" value={totalTrainees} color="blue" />
                 <StatCard icon={<Calendar />} title="الكورسات النشطة" value={activeCourses} color="green" />
-                {userRole === 'admin' && (
-                    <StatCard icon={<DollarSign />} title="إجمالي الإيرادات" value={`${totalRevenue.toLocaleString()} ل.س`} color="yellow" />
-                )}
             </div>
             <div>
                 <h3 className="text-xl font-bold mb-4">الكورسات الأكثر تسجيلاً</h3>
