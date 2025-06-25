@@ -354,7 +354,8 @@
         let cvUrl = null;
 
         if (cvFile) {
-            const filePath = `public/cvs/${Date.now()}-${cvFile.name}`;
+            // FIX: Corrected the file path for upload
+            const filePath = `${Date.now()}-${cvFile.name}`;
             const { data: uploadData, error: uploadError } = await window.supabaseClient.storage
                 .from('cvs')
                 .upload(filePath, cvFile);
