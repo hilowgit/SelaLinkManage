@@ -6,21 +6,24 @@
     <title>إدارة مركز صلة التدريبي الدولي</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Favicon -->
-    <link rel="icon" href="https://placehold.co/32x32/3B82F6/FFFFFF?text=S" type="image/png">
+    <link rel="icon" href="https://placehold.co/32x32/6366F1/FFFFFF?text=S" type="image/png">
     
     <!-- Supabase JS Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Cairo', sans-serif;
-            background-color: #f0f4f8;
+            background-color: #f1f5f9; /* Lighter gray background */
         }
         .tab-button.active {
-            border-color: #3B82F6;
-            color: #3B82F6;
-            background-color: #EFF6FF;
+            border-color: #4f46e5; /* Indigo color */
+            color: #4f46e5;
+            background-color: #eef2ff;
         }
         .modal {
             display: none;
@@ -34,10 +37,12 @@
             background-color: rgba(0,0,0,0.5);
             -webkit-backdrop-filter: blur(5px);
             backdrop-filter: blur(5px);
+            align-items: center;
+            justify-content: center;
         }
         .modal-content {
             background-color: #fefefe;
-            margin: 5% auto;
+            margin: auto;
             padding: 24px;
             border: 1px solid #888;
             width: 90%;
@@ -45,6 +50,8 @@
             border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             animation: slide-down 0.3s ease-out;
+            max-height: 90vh;
+            overflow-y: auto;
         }
         @keyframes slide-down {
             from {
@@ -67,51 +74,50 @@
         .close-button:focus {
             color: #000;
         }
-        /* Custom scrollbar for better aesthetics */
-        ::-webkit-scrollbar {
-            width: 8px;
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+        
+        /* Spinner for loading state */
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #E2E8F0;
+            border-bottom-color: #4f46e5;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
         }
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #555;
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-slate-100">
 
     <div id="app" class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
         <!-- Header -->
         <header class="bg-white shadow-md rounded-lg p-6 mb-6 flex justify-between items-center">
             <div>
-                <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">إدارة مركز صلة التدريبي الدولي</h1>
-                <p class="text-gray-500 mt-1">لوحة تحكم شاملة لإدارة شؤون المركز</p>
+                <h1 class="text-2xl sm:text-3xl font-bold text-slate-800">إدارة مركز صلة التدريبي الدولي</h1>
+                <p class="text-slate-500 mt-1">لوحة تحكم شاملة لإدارة شؤون المركز</p>
             </div>
-             <div class="text-blue-500">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v11.494m-9-5.747h18" />
-                </svg>
+             <div class="text-indigo-600">
+                <i class="fas fa-sitemap fa-2x"></i>
             </div>
         </header>
 
         <!-- Navigation Tabs -->
         <div class="mb-6">
-            <div class="border-b border-gray-200">
+            <div class="border-b border-slate-200">
                 <nav class="-mb-px flex space-x-4 space-x-reverse" aria-label="Tabs">
-                    <button onclick="showTab('trainees')" class="tab-button active whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm text-gray-500 hover:text-blue-600 hover:border-blue-300 transition-colors duration-200" data-tab="trainees">
-                        المتدربين
-                    </button>
-                    <button onclick="showTab('instructors')" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm text-gray-500 hover:text-blue-600 hover:border-blue-300 transition-colors duration-200" data-tab="instructors">
-                        المدربين
-                    </button>
-                    <button onclick="showTab('schedule')" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm text-gray-500 hover:text-blue-600 hover:border-blue-300 transition-colors duration-200" data-tab="schedule">
-                        جدولة الكورسات
-                    </button>
+                    <button onclick="showTab('trainees')" class="tab-button active whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm text-slate-500 hover:text-indigo-600 hover:border-indigo-300 transition-colors duration-200" data-tab="trainees">المتدربين</button>
+                    <button onclick="showTab('instructors')" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm text-slate-500 hover:text-indigo-600 hover:border-indigo-300 transition-colors duration-200" data-tab="instructors">المدربين</button>
+                    <button onclick="showTab('schedule')" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm text-slate-500 hover:text-indigo-600 hover:border-indigo-300 transition-colors duration-200" data-tab="schedule">جدولة الكورسات</button>
                 </nav>
             </div>
         </div>
@@ -122,17 +128,14 @@
             <div id="trainees" class="tab-content">
                 <div class="bg-white p-6 rounded-lg shadow-sm">
                     <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
-                        <h2 class="text-xl font-bold text-gray-700">بيانات المتدربين</h2>
-                        <button onclick="openModal('addTraineeModal')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">
-                            إضافة متدرب جديد
-                        </button>
+                        <h2 class="text-xl font-bold text-slate-700">قائمة المتدربين</h2>
+                        <button onclick="openModal('addTraineeModal')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors duration-200"><i class="fas fa-plus"></i> إضافة متدرب جديد</button>
                     </div>
                     <div class="mb-4">
-                        <input type="text" id="traineeSearch" onkeyup="searchTrainee()" placeholder="ابحث عن اسم المتدرب..." class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <input type="text" id="traineeSearch" onkeyup="filterTrainees()" placeholder="ابحث عن اسم المتدرب لتصفية القائمة..." class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
-                    <div id="traineeDetails" class="mt-4 space-y-4">
-                       <!-- Search results will be displayed here -->
-                       <p class="text-gray-500 text-center">ابحث باسم المتدرب لعرض التفاصيل أو قم بإضافة متدرب جديد.</p>
+                    <div id="traineeList" class="mt-4 space-y-4">
+                       <!-- Data will be loaded here -->
                     </div>
                 </div>
             </div>
@@ -141,36 +144,29 @@
             <div id="instructors" class="tab-content" style="display: none;">
                 <div class="bg-white p-6 rounded-lg shadow-sm">
                     <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
-                        <h2 class="text-xl font-bold text-gray-700">بيانات المدربين</h2>
-                        <button onclick="openModal('addInstructorModal')" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">
-                            إضافة مدرب جديد
-                        </button>
+                        <h2 class="text-xl font-bold text-slate-700">قائمة المدربين</h2>
+                        <button onclick="openModal('addInstructorModal')" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors duration-200"><i class="fas fa-plus"></i> إضافة مدرب جديد</button>
                     </div>
                     <div class="mb-4">
-                        <input type="text" id="instructorSearch" onkeyup="searchInstructor()" placeholder="ابحث عن اسم المدرب..." class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                        <input type="text" id="instructorSearch" onkeyup="filterInstructors()" placeholder="ابحث عن اسم المدرب لتصفية القائمة..." class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
                     </div>
-                    <div id="instructorDetails" class="mt-4 space-y-4">
-                        <!-- Search results will be displayed here -->
-                        <p class="text-gray-500 text-center">ابحث باسم المدرب لعرض التفاصيل أو قم بإضافة مدرب جديد.</p>
+                    <div id="instructorList" class="mt-4 space-y-4">
+                        <!-- Data will be loaded here -->
                     </div>
                 </div>
             </div>
 
-            <!-- Schedule Section -->
+            <!-- Schedule Section (Placeholder) -->
             <div id="schedule" class="tab-content" style="display: none;">
                  <div class="bg-white p-6 rounded-lg shadow-sm">
                     <h2 class="text-xl font-bold text-gray-700 mb-4">جدولة الكورسات</h2>
-                    <p class="text-gray-600">سيتم هنا عرض تقويم شهري لتنظيم مواعيد الكورسات والقاعات. (واجهة قيد التطوير)</p>
-                     <!-- Placeholder for calendar -->
-                    <div class="mt-4 p-8 border-2 border-dashed border-gray-300 rounded-lg h-96 flex items-center justify-center">
-                        <p class="text-gray-400 font-medium">مكون التقويم سيوضع هنا</p>
-                    </div>
-                </div>
+                    <p class="text-gray-600">(واجهة قيد التطوير)</p>
+                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Add Trainee Modal -->
+    <!-- Modals -->
     <div id="addTraineeModal" class="modal">
         <div class="modal-content">
             <span onclick="closeModal('addTraineeModal')" class="close-button">&times;</span>
@@ -183,14 +179,11 @@
                 <input type="date" name="dob" placeholder="التولد" class="w-full p-2 border rounded-lg">
                 <input type="text" name="mother_name" placeholder="اسم الأم" class="w-full p-2 border rounded-lg">
                 <input type="text" name="education_level" placeholder="التحصيل العلمي" class="w-full p-2 border rounded-lg">
-                <button type="submit" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">
-                    حفظ المتدرب
-                </button>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">حفظ المتدرب</button>
             </form>
         </div>
     </div>
-
-    <!-- Add Instructor Modal -->
+    
     <div id="addInstructorModal" class="modal">
         <div class="modal-content">
             <span onclick="closeModal('addInstructorModal')" class="close-button">&times;</span>
@@ -221,327 +214,239 @@
                     <input type="file" id="instructorCv" name="cv" accept=".pdf" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
                     <p class="text-xs text-gray-500 mt-1">يجب أن يكون الملف بصيغة PDF.</p>
                 </div>
-                <button type="submit" id="addInstructorBtn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2">
+                <button type="submit" id="addInstructorBtn" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2">
                     <span id="btnText">حفظ المدرب</span>
                     <span id="btnSpinner" style="display:none;" class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span>
                 </button>
             </form>
         </div>
     </div>
-    
-    <!-- Custom Alert/Toast -->
-    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-gray-800 text-white py-2 px-5 rounded-lg shadow-lg" style="display: none; z-index: 200;">
-        <p id="toast-message"></p>
-    </div>
 
+    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2" style="display: none; z-index: 200;"></div>
 
 <script>
     // --- SUPABASE CLIENT SETUP ---
     const supabaseUrl = "https://sacorfhclmbubtablzuz.supabase.co";
     const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhY29yZmhjbG1idWJ0YWJsenV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4Njk0MjUsImV4cCI6MjA2NjQ0NTQyNX0.OjeACPPo0GJBirnPrfciyhch4XTUUKBBoYFacKRqoh8";
     
-    // Check if the variables are defined before creating the client
+    let supabase;
     if (typeof supabaseUrl !== 'undefined' && typeof supabaseAnonKey !== 'undefined') {
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+        supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
         window.supabaseClient = supabase;
-        console.log('Supabase client initialized.');
-        showToast('تم الاتصال بقاعدة البيانات بنجاح', 'success');
     } else {
         console.error('Supabase URL or Anon Key is not defined.');
-        showToast('خطأ في الاتصال بقاعدة البيانات', 'error');
     }
+
+    // --- GLOBAL STATE ---
+    let allTrainees = [];
+    let allInstructors = [];
 
     // --- UI/UX FUNCTIONS ---
-
-    // Function to show a toast message
     function showToast(message, type = 'info') {
         const toast = document.getElementById('toast');
-        const toastMessage = document.getElementById('toast-message');
-        
-        toastMessage.textContent = message;
-        
-        // Reset classes
-        toast.className = 'fixed bottom-5 left-1/2 -translate-x-1/2 text-white py-2 px-5 rounded-lg shadow-lg';
-
+        toast.innerHTML = `<div class="bg-slate-800 text-white py-2 px-5 rounded-lg shadow-lg"><p>${message}</p></div>`;
         if (type === 'success') {
-            toast.classList.add('bg-green-600');
+            toast.firstElementChild.classList.remove('bg-slate-800');
+            toast.firstElementChild.classList.add('bg-green-600');
         } else if (type === 'error') {
-            toast.classList.add('bg-red-600');
-        } else {
-            toast.classList.add('bg-gray-800');
+            toast.firstElementChild.classList.remove('bg-slate-800');
+            toast.firstElementChild.classList.add('bg-red-600');
         }
-
         toast.style.display = 'block';
-        setTimeout(() => {
-            toast.style.display = 'none';
-        }, 3000);
+        setTimeout(() => { toast.style.display = 'none'; }, 3000);
     }
-
-    // Function to switch between tabs
+    
     function showTab(tabName) {
-        const contents = document.querySelectorAll('.tab-content');
-        contents.forEach(content => {
-            content.style.display = 'none';
-        });
+        document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
         document.getElementById(tabName).style.display = 'block';
-
-        const buttons = document.querySelectorAll('.tab-button');
-        buttons.forEach(button => {
-            button.classList.remove('active');
-            if (button.dataset.tab === tabName) {
-                button.classList.add('active');
-            }
+        document.querySelectorAll('.tab-button').forEach(b => {
+            b.classList.remove('active');
+            if(b.dataset.tab === tabName) b.classList.add('active');
         });
     }
 
-    // Modal functions
-    function openModal(modalId) {
-        document.getElementById(modalId).style.display = 'flex';
-    }
-
-    function closeModal(modalId) {
-        document.getElementById(modalId).style.display = 'none';
-    }
-
+    function openModal(modalId) { document.getElementById(modalId).style.display = 'flex'; }
+    function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
     window.onclick = function(event) {
-        const modals = document.querySelectorAll('.modal');
-        modals.forEach(modal => {
-            if (event.target == modal) {
-                modal.style.display = "none";
-            }
-        });
+        if(event.target.classList.contains('modal')){
+            closeModal(event.target.id);
+        }
     }
+
+    const showLoading = (containerId) => {
+        const container = document.getElementById(containerId);
+        container.innerHTML = `<div class="flex justify-center p-8"><div class="loader"></div></div>`;
+    };
 
     // --- TRAINEE LOGIC ---
-    const addTraineeForm = document.getElementById('addTraineeForm');
-    addTraineeForm.addEventListener('submit', async (e) => {
+    document.getElementById('addTraineeForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const formData = new FormData(addTraineeForm);
+        const formData = new FormData(e.target);
         const traineeData = Object.fromEntries(formData.entries());
-
-        const { data, error } = await window.supabaseClient
-            .from('trainees')
-            .insert([traineeData]);
-
+        const { data, error } = await window.supabaseClient.from('trainees').insert([traineeData]);
         if (error) {
-            console.error('Error adding trainee:', error);
             showToast('حدث خطأ أثناء إضافة المتدرب', 'error');
+            console.error(error);
         } else {
             showToast('تمت إضافة المتدرب بنجاح', 'success');
-            addTraineeForm.reset();
+            e.target.reset();
             closeModal('addTraineeModal');
+            await fetchAllTrainees(); // Refresh the list
         }
     });
     
-    async function searchTrainee() {
-        const searchTerm = document.getElementById('traineeSearch').value;
-        const detailsContainer = document.getElementById('traineeDetails');
-
-        if (searchTerm.length < 2) {
-            detailsContainer.innerHTML = '<p class="text-gray-500 text-center">أدخل حرفين على الأقل للبحث.</p>';
-            return;
-        }
-
-        detailsContainer.innerHTML = '<p class="text-gray-500 text-center">جاري البحث...</p>';
-
-        const { data, error } = await window.supabaseClient
-            .from('trainees')
-            .select('*')
-            .ilike('full_name', `%${searchTerm}%`);
-        
+    async function fetchAllTrainees() {
+        showLoading('traineeList');
+        const { data, error } = await window.supabaseClient.from('trainees').select('*').order('created_at', { ascending: false });
         if (error) {
-            console.error('Error searching trainees:', error);
-            detailsContainer.innerHTML = '<p class="text-red-500 text-center">حدث خطأ في البحث.</p>';
-            return;
+            document.getElementById('traineeList').innerHTML = '<p class="text-red-500 text-center">فشل تحميل البيانات.</p>';
+        } else {
+            allTrainees = data;
+            renderTrainees(allTrainees);
         }
+    }
 
-        if (data.length === 0) {
-            detailsContainer.innerHTML = '<p class="text-gray-500 text-center">لم يتم العثور على متدربين بهذا الاسم.</p>';
-            return;
-        }
-
-        renderTraineeResults(data);
+    function filterTrainees() {
+        const searchTerm = document.getElementById('traineeSearch').value.toLowerCase();
+        const filtered = allTrainees.filter(t => t.full_name && t.full_name.toLowerCase().includes(searchTerm));
+        renderTrainees(filtered);
     }
     
-    function renderTraineeResults(trainees) {
-        const detailsContainer = document.getElementById('traineeDetails');
-        detailsContainer.innerHTML = ''; // Clear previous results
-
-        trainees.forEach(trainee => {
-            const card = `
-                <div class="bg-gray-50 p-5 rounded-lg border border-gray-200">
-                    <h3 class="font-bold text-lg text-blue-700">${trainee.full_name}</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3 text-sm">
-                        <p><strong class="font-semibold text-gray-600">الرقم:</strong> ${trainee.phone_number || 'غير متوفر'}</p>
-                        <p><strong class="font-semibold text-gray-600">السكن:</strong> ${trainee.address || 'غير متوفر'}</p>
-                        <p><strong class="font-semibold text-gray-600">الرقم الوطني:</strong> ${trainee.national_id || 'غير متوفر'}</p>
-                        <p><strong class="font-semibold text-gray-600">التولد:</strong> ${trainee.dob || 'غير متوفر'}</p>
-                        <p><strong class="font-semibold text-gray-600">اسم الأم:</strong> ${trainee.mother_name || 'غير متوفر'}</p>
-                        <p><strong class="font-semibold text-gray-600">التحصيل العلمي:</strong> ${trainee.education_level || 'غير متوفر'}</p>
-                    </div>
-                     <div class="mt-4 pt-4 border-t">
-                        <h4 class="font-bold text-md text-gray-800">تفاصيل الكورسات والشهادات</h4>
-                        <p class="text-gray-500 text-sm mt-1">(هذه بيانات وهمية للتوضيح وسيتم ربطها لاحقاً)</p>
-                        <ul class="list-disc pr-5 mt-2 space-y-1 text-sm">
-                            <li><strong>الكورسات المسجل بها:</strong> دورة التسويق الرقمي (حاليًا), دورة إدارة المشاريع (سابقًا).</li>
-                            <li><strong>الدفعات:</strong> لا يوجد دفعات مستحقة.</li>
-                            <li><strong>الشهادات:</strong> حصل على شهادة إدارة المشاريع, لم يحصل على شهادة التسويق (الكورس لم ينته).</li>
-                            <li><strong>ورشات العمل:</strong> حضر ورشة عمل "فن الإلقاء".</li>
-                        </ul>
-                    </div>
+    function renderTrainees(trainees) {
+        const listContainer = document.getElementById('traineeList');
+        if (!trainees || trainees.length === 0) {
+            listContainer.innerHTML = '<p class="text-slate-500 text-center p-4">لا يوجد متدربون لعرضهم. قد تحتاج لإضافة البعض أولاً.</p>';
+            return;
+        }
+        listContainer.innerHTML = trainees.map(trainee => `
+            <div class="bg-white p-5 rounded-lg border shadow-sm hover:shadow-lg transition-shadow duration-300">
+                <div class="flex items-center justify-between mb-4 pb-3 border-b">
+                    <h3 class="font-bold text-xl text-indigo-700">${trainee.full_name || ''}</h3>
+                    <span class="text-xs font-medium bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full">متدرب</span>
                 </div>
-            `;
-            detailsContainer.innerHTML += card;
-        });
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm mb-4">
+                    <div class="flex items-center gap-2 text-slate-700"><i class="fas fa-phone-alt w-4 text-center text-slate-400"></i><span>${trainee.phone_number || 'غير متوفر'}</span></div>
+                    <div class="flex items-center gap-2 text-slate-700"><i class="fas fa-map-marker-alt w-4 text-center text-slate-400"></i><span>${trainee.address || 'غير متوفر'}</span></div>
+                    <div class="flex items-center gap-2 text-slate-700"><i class="fas fa-id-card w-4 text-center text-slate-400"></i><span>${trainee.national_id || 'غير متوفر'}</span></div>
+                    <div class="flex items-center gap-2 text-slate-700"><i class="fas fa-birthday-cake w-4 text-center text-slate-400"></i><span>${trainee.dob || 'غير متوفر'}</span></div>
+                    <div class="flex items-center gap-2 text-slate-700"><i class="fas fa-user-shield w-4 text-center text-slate-400"></i><span>${trainee.mother_name || 'غير متوفر'}</span></div>
+                    <div class="flex items-center gap-2 text-slate-700"><i class="fas fa-user-graduate w-4 text-center text-slate-400"></i><span>${trainee.education_level || 'غير متوفر'}</span></div>
+                </div>
+            </div>
+        `).join('');
     }
 
     // --- INSTRUCTOR LOGIC ---
-    const addInstructorForm = document.getElementById('addInstructorForm');
-    addInstructorForm.addEventListener('submit', async (e) => {
+    document.getElementById('addInstructorForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-
         const btn = document.getElementById('addInstructorBtn');
-        const btnText = document.getElementById('btnText');
-        const spinner = document.getElementById('btnSpinner');
+        const btnText = btn.querySelector('#btnText');
+        const spinner = btn.querySelector('#btnSpinner');
 
         btn.disabled = true;
-        btnText.style.display = 'none';
-        spinner.style.display = 'inline-block';
+        if(spinner) spinner.style.display = 'inline-block';
+        if(btnText) btnText.style.display = 'none';
 
-        const formData = new FormData(addInstructorForm);
+        const formData = new FormData(e.target);
         const instructorData = Object.fromEntries(formData.entries());
         const cvFile = document.getElementById('instructorCv').files[0];
         
         let cvUrl = null;
 
-        // 1. Upload CV if it exists
         if (cvFile) {
-            // Note: For this to work, you MUST create a bucket named 'cvs' in your Supabase project Storage.
-            // You also need to set up storage policies. For this demo, a simple public policy will work.
-            // Go to Storage -> Policies -> cvs -> New Policy. Create a policy for SELECT and INSERT for public access.
-            const filePath = `public/${Date.now()}-${cvFile.name}`;
+            const filePath = `public/cvs/${Date.now()}-${cvFile.name}`;
             const { data: uploadData, error: uploadError } = await window.supabaseClient.storage
                 .from('cvs')
                 .upload(filePath, cvFile);
 
             if (uploadError) {
-                console.error('Error uploading CV:', uploadError);
                 showToast('خطأ في رفع السيرة الذاتية', 'error');
-                // Re-enable button
-                btn.disabled = false;
-                btnText.style.display = 'inline';
-                spinner.style.display = 'none';
-                return; // Stop the process
+                console.error(uploadError);
+            } else {
+                const { data: urlData } = window.supabaseClient.storage.from('cvs').getPublicUrl(filePath);
+                cvUrl = urlData.publicUrl;
             }
-
-            // 2. Get the public URL of the uploaded file
-            const { data: urlData } = window.supabaseClient.storage
-                .from('cvs')
-                .getPublicUrl(filePath);
-            
-            cvUrl = urlData.publicUrl;
         }
         
-        // 3. Prepare data for insertion (including the CV URL)
-        delete instructorData.cv; // remove file object from data to be inserted
-        instructorData.cv_url = cvUrl;
+        delete instructorData.cv; 
+        if(cvUrl) instructorData.cv_url = cvUrl;
 
-        // 4. Insert instructor data into the database
-        const { data: insertData, error: insertError } = await window.supabaseClient
-            .from('instructors')
-            .insert([instructorData]);
+        const { error } = await window.supabaseClient.from('instructors').insert([instructorData]);
 
-        if (insertError) {
-            console.error('Error adding instructor:', insertError);
-            showToast(`حدث خطأ أثناء إضافة المدرب: ${insertError.message}`, 'error');
+        if (error) {
+            showToast(`حدث خطأ أثناء إضافة المدرب`, 'error');
+            console.error(error);
         } else {
             showToast('تمت إضافة المدرب بنجاح', 'success');
-            addInstructorForm.reset();
+            e.target.reset();
             closeModal('addInstructorModal');
+            await fetchAllInstructors();
         }
         
-        // Re-enable button
         btn.disabled = false;
-        btnText.style.display = 'inline';
-        spinner.style.display = 'none';
+        if(spinner) spinner.style.display = 'none';
+        if(btnText) btnText.style.display = 'inline-block';
     });
     
-    async function searchInstructor() {
-        const searchTerm = document.getElementById('instructorSearch').value;
-        const detailsContainer = document.getElementById('instructorDetails');
-
-        if (searchTerm.length < 2) {
-            detailsContainer.innerHTML = '<p class="text-gray-500 text-center">أدخل حرفين على الأقل للبحث.</p>';
-            return;
-        }
-        
-        detailsContainer.innerHTML = '<p class="text-gray-500 text-center">جاري البحث...</p>';
-
-        const { data, error } = await window.supabaseClient
-            .from('instructors')
-            .select('*')
-            .ilike('full_name', `%${searchTerm}%`);
-            
+    async function fetchAllInstructors() {
+        showLoading('instructorList');
+        const { data, error } = await window.supabaseClient.from('instructors').select('*').order('created_at', { ascending: false });
         if (error) {
-            console.error('Error searching instructors:', error);
-            detailsContainer.innerHTML = '<p class="text-red-500 text-center">حدث خطأ في البحث.</p>';
-            return;
+            document.getElementById('instructorList').innerHTML = '<p class="text-red-500 text-center">فشل تحميل البيانات.</p>';
+        } else {
+            allInstructors = data;
+            renderInstructors(allInstructors);
         }
+    }
 
-        if (data.length === 0) {
-            detailsContainer.innerHTML = '<p class="text-gray-500 text-center">لم يتم العثور على مدربين بهذا الاسم.</p>';
-            return;
-        }
-
-        renderInstructorResults(data);
+    function filterInstructors() {
+        const searchTerm = document.getElementById('instructorSearch').value.toLowerCase();
+        const filtered = allInstructors.filter(i => i.full_name && i.full_name.toLowerCase().includes(searchTerm));
+        renderInstructors(filtered);
     }
     
-    function renderInstructorResults(instructors) {
-        const detailsContainer = document.getElementById('instructorDetails');
-        detailsContainer.innerHTML = '';
-
-        instructors.forEach(instructor => {
+    function renderInstructors(instructors) {
+        const listContainer = document.getElementById('instructorList');
+        if (!instructors || instructors.length === 0) {
+            listContainer.innerHTML = '<p class="text-slate-500 text-center p-4">لا يوجد مدربون لعرضهم.</p>';
+            return;
+        }
+        listContainer.innerHTML = instructors.map(instructor => {
             const cvLink = instructor.cv_url 
                 ? `<a href="${instructor.cv_url}" target="_blank" class="text-blue-500 hover:underline">عرض السيرة الذاتية</a>`
                 : '<span>لم يتم الرفع</span>';
-
-            const card = `
-                <div class="bg-gray-50 p-5 rounded-lg border border-gray-200">
-                    <div class="flex justify-between items-start">
-                         <h3 class="font-bold text-lg text-green-700">${instructor.full_name}</h3>
-                         <span class="text-sm font-medium bg-green-100 text-green-800 px-2 py-1 rounded-full">${instructor.specialization || 'غير محدد'}</span>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3 text-sm">
-                        <p><strong class="font-semibold text-gray-600">الرقم:</strong> ${instructor.phone_number || 'غير متوفر'}</p>
-                        <p><strong class="font-semibold text-gray-600">السكن:</strong> ${instructor.address || 'غير متوفر'}</p>
-                        <p><strong class="font-semibold text-gray-600">الرقم الوطني:</strong> ${instructor.national_id || 'غير متوفر'}</p>
-                        <p><strong class="font-semibold text-gray-600">التحصيل العلمي:</strong> ${instructor.education_level || 'غير متوفر'}</p>
-                        <p><strong class="font-semibold text-gray-600">تاريخ التعاقد:</strong> ${instructor.contract_start_date || 'غير محدد'}</p>
-                        <p><strong class="font-semibold text-gray-600">تاريخ الانتهاء:</strong> ${instructor.contract_end_date || 'غير محدد'}</p>
-                        <p><strong class="font-semibold text-gray-600">السيرة الذاتية:</strong> ${cvLink}</p>
-                    </div>
-                     <div class="mt-4 pt-4 border-t">
-                        <h4 class="font-bold text-md text-gray-800">تفاصيل التدريب</h4>
-                        <p class="text-gray-500 text-sm mt-1">(بيانات وهمية للتوضيح)</p>
-                        <ul class="list-disc pr-5 mt-2 space-y-1 text-sm">
-                            <li><strong>الكورسات التي يدربها:</strong> اللغة الإنجليزية للمبتدئين (40 ساعة).</li>
-                            <li><strong>عدد الكورسات المقدمة:</strong> 3 كورسات خلال فترة التعاقد.</li>
-                            <li><strong>الأجور:</strong> تم استلام جميع الأجور.</li>
-                            <li><strong>حالة العقد:</strong> ساري.</li>
-                        </ul>
-                    </div>
+            return `
+            <div class="bg-white p-5 rounded-lg border shadow-sm hover:shadow-lg transition-shadow duration-300">
+                <div class="flex items-center justify-between mb-4 pb-3 border-b">
+                    <h3 class="font-bold text-xl text-teal-700">${instructor.full_name || ''}</h3>
+                    <span class="text-xs font-medium bg-teal-100 text-teal-800 px-2 py-1 rounded-full">${instructor.specialization || 'مدرب'}</span>
                 </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                    <div class="flex items-center gap-2 text-slate-700"><i class="fas fa-phone-alt w-4 text-center text-slate-400"></i><span>${instructor.phone_number || 'غير متوفر'}</span></div>
+                    <div class="flex items-center gap-2 text-slate-700"><i class="fas fa-map-marker-alt w-4 text-center text-slate-400"></i><span>${instructor.address || 'غير متوفر'}</span></div>
+                    <div class="flex items-center gap-2 text-slate-700"><i class="fas fa-id-card w-4 text-center text-slate-400"></i><span>${instructor.national_id || 'غير متوفر'}</span></div>
+                    <div class="flex items-center gap-2 text-slate-700"><i class="fas fa-user-graduate w-4 text-center text-slate-400"></i><span>${instructor.education_level || 'غير متوفر'}</span></div>
+                    <div class="flex items-center gap-2 text-slate-700"><i class="fas fa-file-contract w-4 text-center text-slate-400"></i><span>يبدأ في: ${instructor.contract_start_date || 'غير محدد'}</span></div>
+                    <div class="flex items-center gap-2 text-slate-700"><i class="fas fa-file-signature w-4 text-center text-slate-400"></i><span>ينتهي في: ${instructor.contract_end_date || 'غير محدد'}</span></div>
+                    <div class="flex items-center gap-2 text-slate-700"><i class="fas fa-file-pdf w-4 text-center text-red-400"></i><span>${cvLink}</span></div>
+                </div>
+            </div>
             `;
-            detailsContainer.innerHTML += card;
-        });
+        }).join('');
     }
 
     // --- INITIALIZATION ---
-    // Show the first tab by default
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (window.supabaseClient) {
+            showToast('تم الاتصال وجاري تحميل البيانات...', 'info');
+            await fetchAllTrainees();
+            await fetchAllInstructors();
+        } else {
+             showToast('فشل الاتصال بقاعدة البيانات!', 'error');
+        }
+        // Set the default tab after fetching data
         showTab('trainees');
     });
-
 </script>
 
 </body>
