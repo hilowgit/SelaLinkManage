@@ -767,7 +767,7 @@ const TrainerForm = ({ isOpen, onClose, onSave, trainer }) => {
 
         // الرجاء التأكد من أن هذه القيم صحيحة من حسابك في Cloudinary
         const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dnqhuye5h/upload";
-        const UPLOAD_PRESET = "kaci9qnw";
+        const UPLOAD_PRESET = "pdf-public-selali";
 
         const uploadData = new FormData();
         uploadData.append("file", cvFile);
