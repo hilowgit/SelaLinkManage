@@ -4,7 +4,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore, collection, doc, addDoc, getDocs, setDoc, onSnapshot, query, where, deleteDoc, writeBatch } from 'firebase/firestore';
 import { Search, User, Users, Calendar, BookOpen, Edit, Trash2, PlusCircle, X, Clock, Building, Tag, Users as TraineesIcon, ClipboardList, List, DollarSign, Award, Percent, Star, XCircle, CheckCircle, BarChart2, Briefcase, AlertTriangle } from 'lucide-react';
-
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 // --- تهيئة Firebase ---
 // الإصلاح: تمت إضافة آلية احتياطية.
 // 1. يحاول استخدام __firebase_config من بيئة التشغيل.
@@ -12,7 +12,7 @@ import { Search, User, Users, Calendar, BookOpen, Edit, Trash2, PlusCircle, X, C
 // !! هام: الرجاء إدخال مفتاح API الصحيح الخاص بك في "YOUR_API_KEY_HERE".
 console.log("RUNNING CODE VERSION: FALLBACK-CONFIG-FIX");
 
-let app, auth, db;
+let app, auth, db, storage;
 let firebaseInitializationError = null;
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'sila-center-app-v3-local';
@@ -47,6 +47,7 @@ try {
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
+    storage = getStorage(app); 
 } catch (e) {
     console.error("Firebase Initialization Failed:", e);
     firebaseInitializationError = e;
@@ -728,16 +729,68 @@ const TrainersView = ({ data, userId, userRole }) => {
 };
 
 const TrainerForm = ({ isOpen, onClose, onSave, trainer }) => {
+    // ==> تم تعديل الحالة المبدئية لإضافة cvUrl
     const [formData, setFormData] = useState(
         trainer ? { ...trainer, specialties: Array.isArray(trainer.specialties) ? trainer.specialties.join(', ') : '' } : 
-        { fullName: '', phoneNumber: '', address: '', nationalId: '', dob: '', motherName: '', education: '', contractStartDate: '', contractEndDate: '', specialties: '' }
+        { fullName: '', phoneNumber: '', address: '', nationalId: '', dob: '', motherName: '', education: '', contractStartDate: '', contractEndDate: '', specialties: '', cvUrl: '' }
     );
+    
+    // ==> إضافة جديدة: متغيرات لحالة رفع الملف
+    const [cvFile, setCvFile] = useState(null);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [isUploading, setIsUploading] = useState(false);
 
     const handleChange = (e) => setFormData({ ...formData, [e.target.id]: e.target.value });
+    
+    // ==> إضافة جديدة: دالة للتعامل مع اختيار الملف
+    const handleFileChange = (e) => {
+        if (e.target.files[0] && e.target.files[0].type === "application/pdf") {
+            setCvFile(e.target.files[0]);
+        } else {
+            // اختياري: إظهار رسالة خطأ إذا لم يكن الملف PDF
+            alert("الرجاء اختيار ملف بصيغة PDF فقط.");
+            e.target.value = null; // مسح الملف المختار
+        }
+    };
 
-    const handleSubmit = (e) => {
+    // ==> تعديل كامل: دالة الحفظ لتشمل منطق الرفع
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        onSave(formData);
+        
+        // إذا لم يتم اختيار ملف جديد، فقط احفظ البيانات واخرج
+        if (!cvFile) {
+            onSave(formData);
+            return;
+        }
+
+        setIsUploading(true);
+        setUploadProgress(0);
+
+        // إنشاء مرجع فريد للملف في Firebase Storage
+        const storageRef = ref(storage, `trainers_cvs/${Date.now()}_${cvFile.name}`);
+        const uploadTask = uploadBytesResumable(storageRef, cvFile);
+
+        // متابعة حالة الرفع
+        uploadTask.on('state_changed', 
+            (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                setUploadProgress(progress);
+            }, 
+            (error) => {
+                console.error("Upload failed:", error);
+                setIsUploading(false);
+                alert("فشل رفع الملف. الرجاء المحاولة مرة أخرى.");
+            }, 
+            async () => {
+                // عند اكتمال الرفع، احصل على رابط التحميل
+                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                
+                // استدعاء دالة الحفظ الأصلية مع البيانات المحدثة (مع رابط الملف)
+                onSave({ ...formData, cvUrl: downloadURL }); 
+                
+                setIsUploading(false);
+            }
+        );
     };
 
     return (
@@ -756,16 +809,34 @@ const TrainerForm = ({ isOpen, onClose, onSave, trainer }) => {
                     <div className="lg:col-span-3">
                         <Input label="الاختصاصات (مفصولة بفاصلة)" id="specialties" value={formData.specialties} onChange={handleChange} />
                     </div>
+                     
+                    {/* ==> إضافة جديدة: حقل رفع الملف */}
+                    <div className="lg:col-span-3">
+                         <label htmlFor="cvFile" className="block text-sm font-medium text-gray-700 mb-1">السيرة الذاتية (PDF)</label>
+                         <input id="cvFile" type="file" accept=".pdf" onChange={handleFileChange} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+                         {formData.cvUrl && !cvFile && <p className="text-sm text-green-600 mt-2">تم رفع السيرة الذاتية مسبقاً. <a href={formData.cvUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">عرض الملف</a></p>}
+                    </div>
+
+                    {/* ==> إضافة جديدة: إظهار شريط التقدم */}
+                    {isUploading && (
+                        <div className="lg:col-span-3 mt-2">
+                            <p className="text-sm font-medium">جارٍ رفع الملف...</p>
+                            <div className="w-full bg-gray-200 rounded-full h-2.5">
+                               <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${uploadProgress}%` }}></div>
+                            </div>
+                        </div>
+                    )}
                 </div>
                 <div className="flex justify-end gap-4 mt-8 pt-6 border-t">
-                    <Button variant="secondary" onClick={onClose}>إلغاء</Button>
-                    <Button type="submit">حفظ البيانات</Button>
+                    <Button variant="secondary" onClick={onClose} disabled={isUploading}>إلغاء</Button>
+                    <Button type="submit" disabled={isUploading}>
+                        {isUploading ? 'جارٍ الحفظ...' : 'حفظ البيانات'}
+                    </Button>
                 </div>
             </form>
         </Modal>
     );
 };
-
 
 // --- مكونات قسم الجدولة ---
 const ScheduleView = ({ data, userId, userRole }) => {
