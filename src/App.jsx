@@ -711,6 +711,12 @@ const TrainersView = ({ data, userId, userRole }) => {
                         <InfoSection title="بيانات التعاقد">
                             <InfoRow label="تاريخ بدء التعاقد" value={selected.contractStartDate} />
                             <InfoRow label="تاريخ انتهاء التعاقد" value={selected.contractEndDate} />
+                           {selected.cvUrl && (
+                           <InfoRow 
+                           label="السيرة الذاتية" 
+                           value={<a href={selected.cvUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">اضغط هنا للعرض (PDF)</a>} 
+                         />
+                         )}
                         </InfoSection>
                         <div className="flex justify-end gap-4 pt-4 border-t mt-6">
                             <Button variant="secondary" onClick={() => setIsFormOpen(true)}><Edit size={16}/> تعديل</Button>
@@ -754,33 +760,42 @@ const TrainerForm = ({ isOpen, onClose, onSave, trainer }) => {
     };
 
     // ==> تعديل كامل: دالة الحفظ لتشمل منطق الرفع
+   
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
-        // إذا لم يتم اختيار ملف جديد، فقط احفظ البيانات واخرج
-        if (!cvFile) {
-            onSave(formData);
-            return;
-        }
+        if (!cvFile) return;
 
         setIsUploading(true);
-        setUploadProgress(0);
 
-        // إنشاء مرجع فريد للملف في Firebase Storage
-        const storageRef = ref(storage, `trainers_cvs/${Date.now()}_${cvFile.name}`);
-        const uploadTask = uploadBytesResumable(storageRef, cvFile);
+        const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dnqhuye5h/upload";
+        const UPLOAD_PRESET = "kaci9qnw"; // اسم الـ preset الذي أنشأته
 
-        // متابعة حالة الرفع
-        uploadTask.on('state_changed', 
-            (snapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                setUploadProgress(progress);
-            }, 
-            (error) => {
-                console.error("Upload failed:", error);
-                setIsUploading(false);
-                alert("فشل رفع الملف. الرجاء المحاولة مرة أخرى.");
-            }, 
+        const formData = new FormData();
+        formData.append("file", cvFile);
+        formData.append("upload_preset", UPLOAD_PRESET);
+
+        try {
+            const response = await fetch(CLOUDINARY_URL, {
+                method: "POST",
+                body: formData,
+            });
+
+            const data = await response.json();
+
+            if (data.secure_url) {
+                // الآن data.secure_url يحتوي على رابط الملف المرفوع
+                // يمكنك حفظ هذا الرابط في قاعدة بياناتك (سواء كانت Firestore أو أي بديل آخر)
+                const cvUrl = data.secure_url;
+                console.log("File uploaded successfully:", cvUrl);
+                onSave({ ...formData, cvUrl: cvUrl }); // استدعاء دالة الحفظ مع الرابط الجديد
+            }
+        } catch (error) {
+            console.error("Error uploading file:", error);
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
             async () => {
                 // عند اكتمال الرفع، احصل على رابط التحميل
                 const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
