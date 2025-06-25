@@ -1,14 +1,548 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="https://i.ibb.co/0RJ91nLs/Asset-2.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة مركز صلة التدريبي الدولي</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <title>إدارة وإشراف مركز صلة</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+    <!-- Favicon -->
+    <link rel="icon" href="https://placehold.co/32x32/3B82F6/FFFFFF?text=S" type="image/png">
+    
+    <!-- Supabase JS Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f0f4f8;
+        }
+        .tab-button.active {
+            border-color: #3B82F6;
+            color: #3B82F6;
+            background-color: #EFF6FF;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+            -webkit-backdrop-filter: blur(5px);
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 24px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            animation: slide-down 0.3s ease-out;
+        }
+        @keyframes slide-down {
+            from {
+                transform: translateY(-30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        .close-button {
+            color: #aaa;
+            float: left;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: #000;
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div id="app" class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+        <!-- Header -->
+        <header class="bg-white shadow-md rounded-lg p-6 mb-6 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">إدارة مركز صلة التدريبي الدولي</h1>
+                <p class="text-gray-500 mt-1">لوحة تحكم شاملة لإدارة شؤون المركز</p>
+            </div>
+             <div class="text-blue-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v11.494m-9-5.747h18" />
+                </svg>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <div class="mb-6">
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex space-x-4 space-x-reverse" aria-label="Tabs">
+                    <button onclick="showTab('trainees')" class="tab-button active whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm text-gray-500 hover:text-blue-600 hover:border-blue-300 transition-colors duration-200" data-tab="trainees">
+                        المتدربين
+                    </button>
+                    <button onclick="showTab('instructors')" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm text-gray-500 hover:text-blue-600 hover:border-blue-300 transition-colors duration-200" data-tab="instructors">
+                        المدربين
+                    </button>
+                    <button onclick="showTab('schedule')" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm text-gray-500 hover:text-blue-600 hover:border-blue-300 transition-colors duration-200" data-tab="schedule">
+                        جدولة الكورسات
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <main>
+            <!-- Trainees Section -->
+            <div id="trainees" class="tab-content">
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
+                        <h2 class="text-xl font-bold text-gray-700">بيانات المتدربين</h2>
+                        <button onclick="openModal('addTraineeModal')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">
+                            إضافة متدرب جديد
+                        </button>
+                    </div>
+                    <div class="mb-4">
+                        <input type="text" id="traineeSearch" onkeyup="searchTrainee()" placeholder="ابحث عن اسم المتدرب..." class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div id="traineeDetails" class="mt-4 space-y-4">
+                       <!-- Search results will be displayed here -->
+                       <p class="text-gray-500 text-center">ابحث باسم المتدرب لعرض التفاصيل أو قم بإضافة متدرب جديد.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instructors Section -->
+            <div id="instructors" class="tab-content" style="display: none;">
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
+                        <h2 class="text-xl font-bold text-gray-700">بيانات المدربين</h2>
+                        <button onclick="openModal('addInstructorModal')" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">
+                            إضافة مدرب جديد
+                        </button>
+                    </div>
+                    <div class="mb-4">
+                        <input type="text" id="instructorSearch" onkeyup="searchInstructor()" placeholder="ابحث عن اسم المدرب..." class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                    </div>
+                    <div id="instructorDetails" class="mt-4 space-y-4">
+                        <!-- Search results will be displayed here -->
+                        <p class="text-gray-500 text-center">ابحث باسم المدرب لعرض التفاصيل أو قم بإضافة مدرب جديد.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Schedule Section -->
+            <div id="schedule" class="tab-content" style="display: none;">
+                 <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 class="text-xl font-bold text-gray-700 mb-4">جدولة الكورسات</h2>
+                    <p class="text-gray-600">سيتم هنا عرض تقويم شهري لتنظيم مواعيد الكورسات والقاعات. (واجهة قيد التطوير)</p>
+                     <!-- Placeholder for calendar -->
+                    <div class="mt-4 p-8 border-2 border-dashed border-gray-300 rounded-lg h-96 flex items-center justify-center">
+                        <p class="text-gray-400 font-medium">مكون التقويم سيوضع هنا</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Trainee Modal -->
+    <div id="addTraineeModal" class="modal">
+        <div class="modal-content">
+            <span onclick="closeModal('addTraineeModal')" class="close-button">&times;</span>
+            <h3 class="text-xl font-bold mb-4">إضافة متدرب جديد</h3>
+            <form id="addTraineeForm" class="space-y-4">
+                <input type="text" name="full_name" placeholder="الاسم الثلاثي" class="w-full p-2 border rounded-lg" required>
+                <input type="text" name="phone_number" placeholder="رقم الهاتف" class="w-full p-2 border rounded-lg">
+                <input type="text" name="address" placeholder="السكن" class="w-full p-2 border rounded-lg">
+                <input type="text" name="national_id" placeholder="الرقم الوطني" class="w-full p-2 border rounded-lg">
+                <input type="date" name="dob" placeholder="التولد" class="w-full p-2 border rounded-lg">
+                <input type="text" name="mother_name" placeholder="اسم الأم" class="w-full p-2 border rounded-lg">
+                <input type="text" name="education_level" placeholder="التحصيل العلمي" class="w-full p-2 border rounded-lg">
+                <button type="submit" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">
+                    حفظ المتدرب
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Instructor Modal -->
+    <div id="addInstructorModal" class="modal">
+        <div class="modal-content">
+            <span onclick="closeModal('addInstructorModal')" class="close-button">&times;</span>
+            <h3 class="text-xl font-bold mb-4">إضافة مدرب جديد</h3>
+            <form id="addInstructorForm" class="space-y-4">
+                <input type="text" name="full_name" placeholder="الاسم الثلاثي" class="w-full p-2 border rounded-lg" required>
+                <input type="text" name="phone_number" placeholder="رقم الهاتف" class="w-full p-2 border rounded-lg">
+                <input type="text" name="address" placeholder="السكن" class="w-full p-2 border rounded-lg">
+                <input type="text" name="national_id" placeholder="الرقم الوطني" class="w-full p-2 border rounded-lg">
+                <input type="date" name="dob" placeholder="التولد" class="w-full p-2 border rounded-lg">
+                <input type="text" name="mother_name" placeholder="اسم الأم" class="w-full p-2 border rounded-lg">
+                <input type="text" name="education_level" placeholder="التحصيل العلمي" class="w-full p-2 border rounded-lg">
+                <input type="text" name="specialization" placeholder="الاختصاص التدريبي" class="w-full p-2 border rounded-lg">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-sm text-gray-600">تاريخ التعاقد</label>
+                        <input type="date" name="contract_start_date" class="w-full p-2 border rounded-lg">
+                    </div>
+                     <div>
+                        <label class="text-sm text-gray-600">تاريخ الانتهاء</label>
+                        <input type="date" name="contract_end_date" class="w-full p-2 border rounded-lg">
+                    </div>
+                </div>
+                 <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        رفع السيرة الذاتية (PDF)
+                    </label>
+                    <input type="file" id="instructorCv" name="cv" accept=".pdf" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+                    <p class="text-xs text-gray-500 mt-1">يجب أن يكون الملف بصيغة PDF.</p>
+                </div>
+                <button type="submit" id="addInstructorBtn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2">
+                    <span id="btnText">حفظ المدرب</span>
+                    <span id="btnSpinner" style="display:none;" class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span>
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Custom Alert/Toast -->
+    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-gray-800 text-white py-2 px-5 rounded-lg shadow-lg" style="display: none; z-index: 200;">
+        <p id="toast-message"></p>
+    </div>
+
+
+<script>
+    // --- SUPABASE CLIENT SETUP ---
+    const supabaseUrl = "https://sacorfhclmbubtablzuz.supabase.co";
+    const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhY29yZmhjbG1idWJ0YWJsenV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4Njk0MjUsImV4cCI6MjA2NjQ0NTQyNX0.OjeACPPo0GJBirnPrfciyhch4XTUUKBBoYFacKRqoh8";
+    
+    // Check if the variables are defined before creating the client
+    if (typeof supabaseUrl !== 'undefined' && typeof supabaseAnonKey !== 'undefined') {
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+        window.supabaseClient = supabase;
+        console.log('Supabase client initialized.');
+        showToast('تم الاتصال بقاعدة البيانات بنجاح', 'success');
+    } else {
+        console.error('Supabase URL or Anon Key is not defined.');
+        showToast('خطأ في الاتصال بقاعدة البيانات', 'error');
+    }
+
+    // --- UI/UX FUNCTIONS ---
+
+    // Function to show a toast message
+    function showToast(message, type = 'info') {
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toast-message');
+        
+        toastMessage.textContent = message;
+        
+        // Reset classes
+        toast.className = 'fixed bottom-5 left-1/2 -translate-x-1/2 text-white py-2 px-5 rounded-lg shadow-lg';
+
+        if (type === 'success') {
+            toast.classList.add('bg-green-600');
+        } else if (type === 'error') {
+            toast.classList.add('bg-red-600');
+        } else {
+            toast.classList.add('bg-gray-800');
+        }
+
+        toast.style.display = 'block';
+        setTimeout(() => {
+            toast.style.display = 'none';
+        }, 3000);
+    }
+
+    // Function to switch between tabs
+    function showTab(tabName) {
+        const contents = document.querySelectorAll('.tab-content');
+        contents.forEach(content => {
+            content.style.display = 'none';
+        });
+        document.getElementById(tabName).style.display = 'block';
+
+        const buttons = document.querySelectorAll('.tab-button');
+        buttons.forEach(button => {
+            button.classList.remove('active');
+            if (button.dataset.tab === tabName) {
+                button.classList.add('active');
+            }
+        });
+    }
+
+    // Modal functions
+    function openModal(modalId) {
+        document.getElementById(modalId).style.display = 'flex';
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
+
+    window.onclick = function(event) {
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(modal => {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        });
+    }
+
+    // --- TRAINEE LOGIC ---
+    const addTraineeForm = document.getElementById('addTraineeForm');
+    addTraineeForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(addTraineeForm);
+        const traineeData = Object.fromEntries(formData.entries());
+
+        const { data, error } = await window.supabaseClient
+            .from('trainees')
+            .insert([traineeData]);
+
+        if (error) {
+            console.error('Error adding trainee:', error);
+            showToast('حدث خطأ أثناء إضافة المتدرب', 'error');
+        } else {
+            showToast('تمت إضافة المتدرب بنجاح', 'success');
+            addTraineeForm.reset();
+            closeModal('addTraineeModal');
+        }
+    });
+    
+    async function searchTrainee() {
+        const searchTerm = document.getElementById('traineeSearch').value;
+        const detailsContainer = document.getElementById('traineeDetails');
+
+        if (searchTerm.length < 2) {
+            detailsContainer.innerHTML = '<p class="text-gray-500 text-center">أدخل حرفين على الأقل للبحث.</p>';
+            return;
+        }
+
+        detailsContainer.innerHTML = '<p class="text-gray-500 text-center">جاري البحث...</p>';
+
+        const { data, error } = await window.supabaseClient
+            .from('trainees')
+            .select('*')
+            .ilike('full_name', `%${searchTerm}%`);
+        
+        if (error) {
+            console.error('Error searching trainees:', error);
+            detailsContainer.innerHTML = '<p class="text-red-500 text-center">حدث خطأ في البحث.</p>';
+            return;
+        }
+
+        if (data.length === 0) {
+            detailsContainer.innerHTML = '<p class="text-gray-500 text-center">لم يتم العثور على متدربين بهذا الاسم.</p>';
+            return;
+        }
+
+        renderTraineeResults(data);
+    }
+    
+    function renderTraineeResults(trainees) {
+        const detailsContainer = document.getElementById('traineeDetails');
+        detailsContainer.innerHTML = ''; // Clear previous results
+
+        trainees.forEach(trainee => {
+            const card = `
+                <div class="bg-gray-50 p-5 rounded-lg border border-gray-200">
+                    <h3 class="font-bold text-lg text-blue-700">${trainee.full_name}</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3 text-sm">
+                        <p><strong class="font-semibold text-gray-600">الرقم:</strong> ${trainee.phone_number || 'غير متوفر'}</p>
+                        <p><strong class="font-semibold text-gray-600">السكن:</strong> ${trainee.address || 'غير متوفر'}</p>
+                        <p><strong class="font-semibold text-gray-600">الرقم الوطني:</strong> ${trainee.national_id || 'غير متوفر'}</p>
+                        <p><strong class="font-semibold text-gray-600">التولد:</strong> ${trainee.dob || 'غير متوفر'}</p>
+                        <p><strong class="font-semibold text-gray-600">اسم الأم:</strong> ${trainee.mother_name || 'غير متوفر'}</p>
+                        <p><strong class="font-semibold text-gray-600">التحصيل العلمي:</strong> ${trainee.education_level || 'غير متوفر'}</p>
+                    </div>
+                     <div class="mt-4 pt-4 border-t">
+                        <h4 class="font-bold text-md text-gray-800">تفاصيل الكورسات والشهادات</h4>
+                        <p class="text-gray-500 text-sm mt-1">(هذه بيانات وهمية للتوضيح وسيتم ربطها لاحقاً)</p>
+                        <ul class="list-disc pr-5 mt-2 space-y-1 text-sm">
+                            <li><strong>الكورسات المسجل بها:</strong> دورة التسويق الرقمي (حاليًا), دورة إدارة المشاريع (سابقًا).</li>
+                            <li><strong>الدفعات:</strong> لا يوجد دفعات مستحقة.</li>
+                            <li><strong>الشهادات:</strong> حصل على شهادة إدارة المشاريع, لم يحصل على شهادة التسويق (الكورس لم ينته).</li>
+                            <li><strong>ورشات العمل:</strong> حضر ورشة عمل "فن الإلقاء".</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+            detailsContainer.innerHTML += card;
+        });
+    }
+
+    // --- INSTRUCTOR LOGIC ---
+    const addInstructorForm = document.getElementById('addInstructorForm');
+    addInstructorForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const btn = document.getElementById('addInstructorBtn');
+        const btnText = document.getElementById('btnText');
+        const spinner = document.getElementById('btnSpinner');
+
+        btn.disabled = true;
+        btnText.style.display = 'none';
+        spinner.style.display = 'inline-block';
+
+        const formData = new FormData(addInstructorForm);
+        const instructorData = Object.fromEntries(formData.entries());
+        const cvFile = document.getElementById('instructorCv').files[0];
+        
+        let cvUrl = null;
+
+        // 1. Upload CV if it exists
+        if (cvFile) {
+            // Note: For this to work, you MUST create a bucket named 'cvs' in your Supabase project Storage.
+            // You also need to set up storage policies. For this demo, a simple public policy will work.
+            // Go to Storage -> Policies -> cvs -> New Policy. Create a policy for SELECT and INSERT for public access.
+            const filePath = `public/${Date.now()}-${cvFile.name}`;
+            const { data: uploadData, error: uploadError } = await window.supabaseClient.storage
+                .from('cvs')
+                .upload(filePath, cvFile);
+
+            if (uploadError) {
+                console.error('Error uploading CV:', uploadError);
+                showToast('خطأ في رفع السيرة الذاتية', 'error');
+                // Re-enable button
+                btn.disabled = false;
+                btnText.style.display = 'inline';
+                spinner.style.display = 'none';
+                return; // Stop the process
+            }
+
+            // 2. Get the public URL of the uploaded file
+            const { data: urlData } = window.supabaseClient.storage
+                .from('cvs')
+                .getPublicUrl(filePath);
+            
+            cvUrl = urlData.publicUrl;
+        }
+        
+        // 3. Prepare data for insertion (including the CV URL)
+        delete instructorData.cv; // remove file object from data to be inserted
+        instructorData.cv_url = cvUrl;
+
+        // 4. Insert instructor data into the database
+        const { data: insertData, error: insertError } = await window.supabaseClient
+            .from('instructors')
+            .insert([instructorData]);
+
+        if (insertError) {
+            console.error('Error adding instructor:', insertError);
+            showToast(`حدث خطأ أثناء إضافة المدرب: ${insertError.message}`, 'error');
+        } else {
+            showToast('تمت إضافة المدرب بنجاح', 'success');
+            addInstructorForm.reset();
+            closeModal('addInstructorModal');
+        }
+        
+        // Re-enable button
+        btn.disabled = false;
+        btnText.style.display = 'inline';
+        spinner.style.display = 'none';
+    });
+    
+    async function searchInstructor() {
+        const searchTerm = document.getElementById('instructorSearch').value;
+        const detailsContainer = document.getElementById('instructorDetails');
+
+        if (searchTerm.length < 2) {
+            detailsContainer.innerHTML = '<p class="text-gray-500 text-center">أدخل حرفين على الأقل للبحث.</p>';
+            return;
+        }
+        
+        detailsContainer.innerHTML = '<p class="text-gray-500 text-center">جاري البحث...</p>';
+
+        const { data, error } = await window.supabaseClient
+            .from('instructors')
+            .select('*')
+            .ilike('full_name', `%${searchTerm}%`);
+            
+        if (error) {
+            console.error('Error searching instructors:', error);
+            detailsContainer.innerHTML = '<p class="text-red-500 text-center">حدث خطأ في البحث.</p>';
+            return;
+        }
+
+        if (data.length === 0) {
+            detailsContainer.innerHTML = '<p class="text-gray-500 text-center">لم يتم العثور على مدربين بهذا الاسم.</p>';
+            return;
+        }
+
+        renderInstructorResults(data);
+    }
+    
+    function renderInstructorResults(instructors) {
+        const detailsContainer = document.getElementById('instructorDetails');
+        detailsContainer.innerHTML = '';
+
+        instructors.forEach(instructor => {
+            const cvLink = instructor.cv_url 
+                ? `<a href="${instructor.cv_url}" target="_blank" class="text-blue-500 hover:underline">عرض السيرة الذاتية</a>`
+                : '<span>لم يتم الرفع</span>';
+
+            const card = `
+                <div class="bg-gray-50 p-5 rounded-lg border border-gray-200">
+                    <div class="flex justify-between items-start">
+                         <h3 class="font-bold text-lg text-green-700">${instructor.full_name}</h3>
+                         <span class="text-sm font-medium bg-green-100 text-green-800 px-2 py-1 rounded-full">${instructor.specialization || 'غير محدد'}</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3 text-sm">
+                        <p><strong class="font-semibold text-gray-600">الرقم:</strong> ${instructor.phone_number || 'غير متوفر'}</p>
+                        <p><strong class="font-semibold text-gray-600">السكن:</strong> ${instructor.address || 'غير متوفر'}</p>
+                        <p><strong class="font-semibold text-gray-600">الرقم الوطني:</strong> ${instructor.national_id || 'غير متوفر'}</p>
+                        <p><strong class="font-semibold text-gray-600">التحصيل العلمي:</strong> ${instructor.education_level || 'غير متوفر'}</p>
+                        <p><strong class="font-semibold text-gray-600">تاريخ التعاقد:</strong> ${instructor.contract_start_date || 'غير محدد'}</p>
+                        <p><strong class="font-semibold text-gray-600">تاريخ الانتهاء:</strong> ${instructor.contract_end_date || 'غير محدد'}</p>
+                        <p><strong class="font-semibold text-gray-600">السيرة الذاتية:</strong> ${cvLink}</p>
+                    </div>
+                     <div class="mt-4 pt-4 border-t">
+                        <h4 class="font-bold text-md text-gray-800">تفاصيل التدريب</h4>
+                        <p class="text-gray-500 text-sm mt-1">(بيانات وهمية للتوضيح)</p>
+                        <ul class="list-disc pr-5 mt-2 space-y-1 text-sm">
+                            <li><strong>الكورسات التي يدربها:</strong> اللغة الإنجليزية للمبتدئين (40 ساعة).</li>
+                            <li><strong>عدد الكورسات المقدمة:</strong> 3 كورسات خلال فترة التعاقد.</li>
+                            <li><strong>الأجور:</strong> تم استلام جميع الأجور.</li>
+                            <li><strong>حالة العقد:</strong> ساري.</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+            detailsContainer.innerHTML += card;
+        });
+    }
+
+    // --- INITIALIZATION ---
+    // Show the first tab by default
+    document.addEventListener('DOMContentLoaded', () => {
+        showTab('trainees');
+    });
+
+</script>
+
+</body>
 </html>
