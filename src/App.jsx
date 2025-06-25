@@ -4,7 +4,6 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore, collection, doc, addDoc, getDocs, setDoc, onSnapshot, query, where, deleteDoc, writeBatch } from 'firebase/firestore';
 import { Search, User, Users, Calendar, BookOpen, Edit, Trash2, PlusCircle, X, Clock, Building, Tag, Users as TraineesIcon, ClipboardList, List, DollarSign, Award, Percent, Star, XCircle, CheckCircle, BarChart2, Briefcase, AlertTriangle } from 'lucide-react';
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 // --- تهيئة Firebase ---
 // الإصلاح: تمت إضافة آلية احتياطية.
 // 1. يحاول استخدام __firebase_config من بيئة التشغيل.
@@ -735,83 +734,79 @@ const TrainersView = ({ data, userId, userRole }) => {
 };
 
 const TrainerForm = ({ isOpen, onClose, onSave, trainer }) => {
-    // ==> تم تعديل الحالة المبدئية لإضافة cvUrl
     const [formData, setFormData] = useState(
         trainer ? { ...trainer, specialties: Array.isArray(trainer.specialties) ? trainer.specialties.join(', ') : '' } : 
         { fullName: '', phoneNumber: '', address: '', nationalId: '', dob: '', motherName: '', education: '', contractStartDate: '', contractEndDate: '', specialties: '', cvUrl: '' }
     );
     
-    // ==> إضافة جديدة: متغيرات لحالة رفع الملف
     const [cvFile, setCvFile] = useState(null);
-    const [uploadProgress, setUploadProgress] = useState(0);
     const [isUploading, setIsUploading] = useState(false);
 
     const handleChange = (e) => setFormData({ ...formData, [e.target.id]: e.target.value });
     
-    // ==> إضافة جديدة: دالة للتعامل مع اختيار الملف
     const handleFileChange = (e) => {
         if (e.target.files[0] && e.target.files[0].type === "application/pdf") {
             setCvFile(e.target.files[0]);
-        } else {
-            // اختياري: إظهار رسالة خطأ إذا لم يكن الملف PDF
+        } else if (e.target.files[0]) { // إذا تم اختيار ملف لكنه ليس PDF
             alert("الرجاء اختيار ملف بصيغة PDF فقط.");
-            e.target.value = null; // مسح الملف المختار
+            e.target.value = null; 
         }
     };
 
-    // ==> تعديل كامل: دالة الحفظ لتشمل منطق الرفع
-   
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!cvFile) return;
+
+        // إذا لم يتم اختيار ملف جديد، فقط احفظ البيانات الحالية
+        if (!cvFile) {
+            onSave(formData);
+            // أغلق النافذة بعد الحفظ
+            if(onClose) onClose(); 
+            return;
+        }
 
         setIsUploading(true);
 
+        // الرجاء التأكد من أن هذه القيم صحيحة من حسابك في Cloudinary
         const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dnqhuye5h/upload";
-        const UPLOAD_PRESET = "kaci9qnw"; // اسم الـ preset الذي أنشأته
+        const UPLOAD_PRESET = "kaci9qnw";
 
-        const formData = new FormData();
-        formData.append("file", cvFile);
-        formData.append("upload_preset", UPLOAD_PRESET);
+        const uploadData = new FormData();
+        uploadData.append("file", cvFile);
+        uploadData.append("upload_preset", UPLOAD_PRESET);
 
         try {
             const response = await fetch(CLOUDINARY_URL, {
                 method: "POST",
-                body: formData,
+                body: uploadData,
             });
 
             const data = await response.json();
 
             if (data.secure_url) {
-                // الآن data.secure_url يحتوي على رابط الملف المرفوع
-                // يمكنك حفظ هذا الرابط في قاعدة بياناتك (سواء كانت Firestore أو أي بديل آخر)
                 const cvUrl = data.secure_url;
                 console.log("File uploaded successfully:", cvUrl);
-                onSave({ ...formData, cvUrl: cvUrl }); // استدعاء دالة الحفظ مع الرابط الجديد
+                // استدعاء دالة الحفظ مع كل بيانات النموذج + رابط الملف الجديد
+                onSave({ ...formData, cvUrl: cvUrl });
+            } else {
+                // في حال حدوث خطأ من Cloudinary
+                throw new Error(data.error.message || "Failed to upload file to Cloudinary");
             }
+
         } catch (error) {
             console.error("Error uploading file:", error);
+            alert("حدث خطأ أثناء رفع الملف. الرجاء المحاولة مرة أخرى.");
         } finally {
             setIsUploading(false);
+            // أغلق النافذة في كل الحالات بعد انتهاء المحاولة
+            if(onClose) onClose();
         }
-    };
-
-            async () => {
-                // عند اكتمال الرفع، احصل على رابط التحميل
-                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                
-                // استدعاء دالة الحفظ الأصلية مع البيانات المحدثة (مع رابط الملف)
-                onSave({ ...formData, cvUrl: downloadURL }); 
-                
-                setIsUploading(false);
-            }
-        );
     };
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={trainer ? 'تعديل بيانات المدرب' : 'إضافة مدرب جديد'} size="4xl">
             <form onSubmit={handleSubmit}>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6">
+                    {/* ... جميع حقول الإدخال الأخرى كما هي ... */}
                     <Input label="الاسم الثلاثي" id="fullName" value={formData.fullName} onChange={handleChange} required />
                     <Input label="رقم الهاتف" id="phoneNumber" value={formData.phoneNumber} onChange={handleChange} />
                     <Input label="السكن" id="address" value={formData.address} onChange={handleChange} />
@@ -824,21 +819,18 @@ const TrainerForm = ({ isOpen, onClose, onSave, trainer }) => {
                     <div className="lg:col-span-3">
                         <Input label="الاختصاصات (مفصولة بفاصلة)" id="specialties" value={formData.specialties} onChange={handleChange} />
                     </div>
-                     
-                    {/* ==> إضافة جديدة: حقل رفع الملف */}
+                    
+                    {/* حقل رفع الملف */}
                     <div className="lg:col-span-3">
                          <label htmlFor="cvFile" className="block text-sm font-medium text-gray-700 mb-1">السيرة الذاتية (PDF)</label>
                          <input id="cvFile" type="file" accept=".pdf" onChange={handleFileChange} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
                          {formData.cvUrl && !cvFile && <p className="text-sm text-green-600 mt-2">تم رفع السيرة الذاتية مسبقاً. <a href={formData.cvUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">عرض الملف</a></p>}
                     </div>
 
-                    {/* ==> إضافة جديدة: إظهار شريط التقدم */}
+                    {/* إظهار رسالة "جارٍ الرفع" */}
                     {isUploading && (
                         <div className="lg:col-span-3 mt-2">
-                            <p className="text-sm font-medium">جارٍ رفع الملف...</p>
-                            <div className="w-full bg-gray-200 rounded-full h-2.5">
-                               <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${uploadProgress}%` }}></div>
-                            </div>
+                            <p className="text-sm font-medium flex items-center gap-2"><Clock size={16} className="animate-spin" /> جارٍ رفع الملف...</p>
                         </div>
                     )}
                 </div>
