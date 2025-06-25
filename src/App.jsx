@@ -11,7 +11,7 @@ import { Search, User, Users, Calendar, BookOpen, Edit, Trash2, PlusCircle, X, C
 // !! هام: الرجاء إدخال مفتاح API الصحيح الخاص بك في "YOUR_API_KEY_HERE".
 console.log("RUNNING CODE VERSION: FALLBACK-CONFIG-FIX");
 
-let app, auth, db, storage;
+let app, auth, db;
 let firebaseInitializationError = null;
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'sila-center-app-v3-local';
@@ -45,8 +45,7 @@ try {
 
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
-    db = getFirestore(app);
-    storage = getStorage(app); 
+    db = getFirestore(app); 
 } catch (e) {
     console.error("Firebase Initialization Failed:", e);
     firebaseInitializationError = e;
